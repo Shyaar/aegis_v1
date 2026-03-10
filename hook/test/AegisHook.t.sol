@@ -8,13 +8,23 @@ import {IPoolManager} from "@uniswap/v4-core/src/interfaces/IPoolManager.sol";
 import {PoolKey} from "@uniswap/v4-core/src/types/PoolKey.sol";
 import {AegisHook} from "../src/AegisHook.sol";
 
+import {AegisHook} from "../src/AegisHook.sol";
+import {AegisPolicy} from "../src/AegisPolicy.sol";
+import {AegisReserve} from "../src/AegisReserve.sol";
+
 contract AegisHookTest is Test {
     IPoolManager manager;
     AegisHook hook;
+    AegisPolicy policy;
+    AegisReserve reserve;
 
     function setUp() public {
         manager = IPoolManager(address(1)); // Mock
-        hook = new AegisHook(manager);
+        policy = new AegisPolicy();
+        reserve = new AegisReserve(address(this));
+        hook = new AegisHook(manager, address(policy), address(reserve));
+        
+        reserve.setHook(address(hook));
     }
 
     function test_Permission() public {

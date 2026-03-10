@@ -34,7 +34,7 @@ abstract contract Deployers {
         currency1 = Currency.wrap(address(token1));
     }
 
-    function deployArtifactsAndLabel() internal {
+    function deployArtifactsAndLabel() internal virtual {
         //order matters
         deployPoolManager();
         deployPositionManager();
