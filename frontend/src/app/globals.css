@@ -1,0 +1,39 @@
+@import "tailwindcss";
+
+@theme {
+  --color-aegis-bg: #030305;
+  --color-aegis-card: rgba(13, 13, 18, 0.7);
+  --color-aegis-accent: #00f2ff;
+  --color-aegis-accent-dim: rgba(0, 242, 255, 0.1);
+  --color-aegis-text: #f0f0f0;
+  --color-aegis-text-dim: #8b8b91;
+  --color-aegis-border: rgba(255, 255, 255, 0.05);
+}
+
+@layer base {
+  body {
+    background-color: var(--color-aegis-bg);
+    color: var(--color-aegis-text);
+  }
+}
+
+@layer utilities {
+  .glass-card {
+    background: var(--color-aegis-card);
+    backdrop-filter: blur(16px) saturate(180%);
+    border: 1px solid var(--color-aegis-border);
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
+  }
+
+  .glow-accent {
+    box-shadow: 0 0 20px rgba(0, 242, 255, 0.4);
+  }
+
+  .glow-text {
+    text-shadow: 0 0 10px rgba(0, 242, 255, 0.5);
+  }
+
+  .accent-gradient {
+    background: linear-gradient(135deg, #00f2ff 0%, #0077ff 100%);
+  }
+}
