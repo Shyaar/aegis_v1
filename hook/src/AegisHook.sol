@@ -16,9 +16,12 @@ import {IAegisPolicy} from "./interfaces/IAegisPolicy.sol";
 import {IAegisReserve} from "./interfaces/IAegisReserve.sol";
 import {StateLibrary} from "@uniswap/v4-core/src/libraries/StateLibrary.sol";
 
+import {Currency, CurrencyLibrary} from "@uniswap/v4-core/src/types/Currency.sol";
+
 contract AegisHook is BaseHook {
     using PoolIdLibrary for PoolKey;
     using StateLibrary for IPoolManager;
+    using CurrencyLibrary for Currency;
 
     // --- State ---
     IAegisPolicy public policy;
@@ -28,6 +31,7 @@ contract AegisHook is BaseHook {
         uint160 sqrtPriceX96;
         IAegisPolicy.CoverageTier tier;
         uint256 premium;
+        bool zeroForOne;
     }
 
     // Maps swapper to their current swap quote (recorded in beforeSwap)
@@ -75,11 +79,9 @@ contract AegisHook is BaseHook {
         bytes calldata hookData
     ) internal override returns (bytes4, BeforeSwapDelta, uint24) {
         // 1. Get Market Influx (Volatility Signal)
-        // For simplicity, we use the distance from current tick to a reference point or just mock
-        uint256 volatilitySignal = 100; // 1% movement (mock)
+        uint256 volatilitySignal = 100; // 1% movement (mock or fetch from oracle)
         
         // 2. Calculate Dynamic Fee
-        // In v4, if the pool uses a hook fee, we return the fee here
         uint24 dynamicFee = policy.calculateDynamicFee(key.fee, volatilitySignal);
 
         // 3. Handle Insurance Tier (passed via hookData)
@@ -91,8 +93,9 @@ contract AegisHook is BaseHook {
         // 4. Record Quote
         (uint160 sqrtPriceX96,,,) = poolManager.getSlot0(key.toId());
         
+        uint256 amountSpecified = params.amountSpecified > 0 ? uint256(params.amountSpecified) : uint256(-params.amountSpecified);
         uint256 premium = policy.calculatePremium(IAegisPolicy.PolicyParams({
-            swapSize: params.amountSpecified > 0 ? uint256(params.amountSpecified) : uint256(-params.amountSpecified),
+            swapSize: amountSpecified,
             poolLiquidity: poolManager.getLiquidity(key.toId()),
             baseFee: key.fee,
             volatilitySignal: volatilitySignal,
@@ -102,10 +105,11 @@ contract AegisHook is BaseHook {
         activeQuotes[swapper] = SwapQuote({
             sqrtPriceX96: sqrtPriceX96,
             tier: tier,
-            premium: premium
+            premium: premium,
+            zeroForOne: params.zeroForOne
         });
 
-        // 5. Collect Premium
+        // 5. Collect Premium (In production, pull from swapper)
         reserve.depositPremium(premium);
 
         emit InsuranceQuoted(swapper, sqrtPriceX96, tier);
@@ -113,38 +117,41 @@ contract AegisHook is BaseHook {
         return (
             BaseHook.beforeSwap.selector,
             BeforeSwapDeltaLibrary.ZERO_DELTA,
-            dynamicFee | uint24(1 << 23) // Signal override fee if pool allows
+            dynamicFee | uint24(1 << 23) // Signal override fee
         );
     }
 
     function _afterSwap(
         address swapper,
-        PoolKey calldata,
+        PoolKey calldata key,
         SwapParams calldata params,
         BalanceDelta delta,
         bytes calldata
     ) internal override returns (bytes4, int128) {
         SwapQuote memory quote = activeQuotes[swapper];
         
-        // Calculate Expected vs Actual
-        // This is a simplified comparison for the POC
-        uint256 expectedOut = 1000; // Mock calculation based on quote.sqrtPriceX96
-        uint256 actualOut;
-        int128 a1 = delta.amount1();
-        if (a1 > 0) {
-            actualOut = uint128(a1);
-        } else {
-            actualOut = uint128(-a1);
+        // Simple Expected Amount calculation based on sqrtPriceX96
+        uint256 amountIn = params.amountSpecified > 0 ? uint256(params.amountSpecified) : uint256(-params.amountSpecified);
+        
+        // amountOut = amountIn * (sqrtPriceX96 / 2^96)^2 (if zeroForOne)
+        uint256 expectedOut = (amountIn * uint256(quote.sqrtPriceX96) * uint256(quote.sqrtPriceX96)) >> (96 * 2);
+        if (!quote.zeroForOne) {
+            // amountOut = amountIn / (sqrtPriceX96 / 2^96)^2
+            expectedOut = (amountIn << (96 * 2)) / (uint256(quote.sqrtPriceX96) * uint256(quote.sqrtPriceX96));
         }
+
+        uint256 actualOut;
+        int128 amountOutDelta = quote.zeroForOne ? delta.amount1() : delta.amount0();
+        actualOut = amountOutDelta > 0 ? uint128(amountOutDelta) : uint128(-amountOutDelta);
 
         uint256 compensation = policy.calculateCompensation(expectedOut, actualOut, quote.tier);
 
         if (compensation > 0) {
-            reserve.recordClaim(swapper, compensation);
+            Currency compCurrency = quote.zeroForOne ? key.currency1 : key.currency0;
+            reserve.recordClaim(swapper, Currency.unwrap(compCurrency), compensation);
             emit CompensationTriggered(swapper, compensation);
         }
 
-        // Clean up
         delete activeQuotes[swapper];
 
         return (BaseHook.afterSwap.selector, 0);

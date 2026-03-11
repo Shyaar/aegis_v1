@@ -8,6 +8,7 @@ pragma solidity ^0.8.26;
 interface IAegisReserve {
     struct Claim {
         address swapper;
+        address token;
         uint256 amount;
         bool settled;
         uint256 timestamp;
@@ -16,9 +17,10 @@ interface IAegisReserve {
     /**
      * @notice Records a claim for a swapper.
      * @param swapper The address of the insured swapper.
+     * @param token The address of the token for compensation.
      * @param amount The compensation amount owed.
      */
-    function recordClaim(address swapper, uint256 amount) external;
+    function recordClaim(address swapper, address token, uint256 amount) external;
 
     /**
      * @notice Deposits premiums into the reserve.

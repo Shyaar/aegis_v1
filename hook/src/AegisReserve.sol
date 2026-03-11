@@ -36,10 +36,11 @@ contract AegisReserve is IAegisReserve, Ownable {
     /**
      * @inheritdoc IAegisReserve
      */
-    function recordClaim(address swapper, uint256 amount) external onlyHook {
+    function recordClaim(address swapper, address token, uint256 amount) external onlyHook {
         uint256 claimId = nextClaimId++;
         claims[claimId] = Claim({
             swapper: swapper,
+            token: token,
             amount: amount,
             settled: false,
             timestamp: block.timestamp
@@ -62,13 +63,14 @@ contract AegisReserve is IAegisReserve, Ownable {
     function settleClaim(uint256 claimId) external {
         Claim storage claim = claims[claimId];
         require(!claim.settled, "Already settled");
+        // For POC: In production, totalReserve would be per-token.
         require(totalReserve >= claim.amount, "Insufficient reserve");
 
         claim.settled = true;
         totalReserve -= claim.amount;
 
-        // In a real implementation, we would transfer the actual tokens here.
-        // For this demo/POC, we update the internal balance.
+        IERC20(claim.token).safeTransfer(claim.swapper, claim.amount);
+
         emit ClaimSettled(claimId, claim.swapper, claim.amount);
     }
 
