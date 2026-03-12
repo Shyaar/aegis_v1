@@ -4,7 +4,7 @@ Aegis Protocol is a decentralized insurance layer built as a Uniswap v4 Hook. It
 
 ## Summary
 
-In modern decentralized finance, traders often suffer from "hidden costs" due to slippage, toxic flow, and extreme volatility. Aegis provides a safety net by integrating insurance directly into the swap lifecycle. By selecting a coverage tier (Basic, Standard, or Full), swappers pay a small premium in exchange for guaranteed compensation if their actual output falls short of the fair market price recorded at the start of the transaction.
+In modern decentralized finance, traders often suffer from "hidden costs" due to slippage, toxic flow, and extreme volatility. Aegis provides a safety net by integrating insurance directly into the swap lifecycle. By selecting a coverage tier (None, Basic, Standard, or Full), swappers pay a small premium in exchange for guaranteed compensation if their actual output falls short of the fair market price recorded at the start of the transaction.
 
 ## The Problem
 

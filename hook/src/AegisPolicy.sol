@@ -17,7 +17,10 @@ contract AegisPolicy is IAegisPolicy {
      */
     function calculatePremium(PolicyParams calldata params) external pure returns (uint256) {
         uint256 basePremiumBps;
-        
+        if (params.tier == CoverageTier.None) {
+            return 0;
+        }
+
         if (params.tier == CoverageTier.Basic) {
             basePremiumBps = 5; // 0.05%
         } else if (params.tier == CoverageTier.Standard) {
@@ -60,7 +63,7 @@ contract AegisPolicy is IAegisPolicy {
         uint256 actualOut,
         CoverageTier tier
     ) external pure returns (uint256) {
-        if (actualOut >= expectedOut) return 0;
+        if (tier == CoverageTier.None || actualOut >= expectedOut) return 0;
 
         uint256 deviation = expectedOut - actualOut;
         uint256 thresholdBps;

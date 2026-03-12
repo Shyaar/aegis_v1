@@ -12,6 +12,7 @@ interface ProtectionModalProps {
 
 export default function ProtectionModal({ isOpen, onClose, selectedTier, onSelectTier }: ProtectionModalProps) {
   const tiers = [
+    { name: "None", threshold: "N/A", premium: "0%", icon: <Shield className="w-5 h-5 opacity-50" />, desc: "Trade without Aegis protection." },
     { name: "Basic", threshold: "1.0%", premium: "0.05%", icon: <Shield className="w-5 h-5" />, desc: "Covers major volatility spikes." },
     { name: "Standard", threshold: "0.5%", premium: "0.12%", icon: <ShieldCheck className="w-5 h-5" />, desc: "The balanced choice for most traders." },
     { name: "Full", threshold: "0.2%", premium: "0.25%", icon: <ShieldAlert className="w-5 h-5" />, desc: "Maximum protection for large capital." },

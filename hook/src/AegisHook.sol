@@ -84,7 +84,7 @@ contract AegisHook is BaseHook {
         uint24 dynamicFee = policy.calculateDynamicFee(key.fee, volatilitySignal);
 
         // 3. Handle Insurance Tier (passed via hookData)
-        IAegisPolicy.CoverageTier tier = IAegisPolicy.CoverageTier.Standard;
+        IAegisPolicy.CoverageTier tier = IAegisPolicy.CoverageTier.None;
         if (hookData.length > 0) {
             tier = abi.decode(hookData, (IAegisPolicy.CoverageTier));
         }
@@ -93,6 +93,7 @@ contract AegisHook is BaseHook {
         (uint160 sqrtPriceX96,,,) = poolManager.getSlot0(key.toId());
         
         uint256 amountSpecified = params.amountSpecified > 0 ? uint256(params.amountSpecified) : uint256(-params.amountSpecified);
+        
         uint256 premium = policy.calculatePremium(IAegisPolicy.PolicyParams({
             swapSize: amountSpecified,
             poolLiquidity: poolManager.getLiquidity(key.toId()),
@@ -109,9 +110,10 @@ contract AegisHook is BaseHook {
         });
 
         // 5. Collect Premium (In production, pull from swapper)
-        reserve.depositPremium(premium);
-
-        emit InsuranceQuoted(swapper, sqrtPriceX96, tier);
+        if (tier != IAegisPolicy.CoverageTier.None) {
+            reserve.depositPremium(premium);
+            emit InsuranceQuoted(swapper, sqrtPriceX96, tier);
+        }
 
         return (
             BaseHook.beforeSwap.selector,
@@ -129,6 +131,10 @@ contract AegisHook is BaseHook {
     ) internal override returns (bytes4, int128) {
         SwapQuote memory quote = activeQuotes[swapper];
         
+        if (quote.tier == IAegisPolicy.CoverageTier.None) {
+            delete activeQuotes[swapper];
+            return (BaseHook.afterSwap.selector, 0);
+        }
         // Simple Expected Amount calculation based on sqrtPriceX96
         uint256 amountIn = params.amountSpecified > 0 ? uint256(params.amountSpecified) : uint256(-params.amountSpecified);
         
