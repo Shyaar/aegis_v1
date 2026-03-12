@@ -50,6 +50,14 @@ contract AegisReserve is IAegisReserve, Ownable {
     }
 
     /**
+     * @notice Seeds the reserve with initial capital (owner only).
+     * @param amount The amount of capital to record in the reserve.
+     */
+    function seedReserve(uint256 amount) external onlyOwner {
+        totalReserve += amount;
+    }
+
+    /**
      * @inheritdoc IAegisReserve
      */
     function depositPremium(uint256 amount) external onlyHook {

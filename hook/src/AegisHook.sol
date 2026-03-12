@@ -35,7 +35,6 @@ contract AegisHook is BaseHook {
     }
 
     // Maps swapper to their current swap quote (recorded in beforeSwap)
-    // In production, this should use Transient Storage
     mapping(address => SwapQuote) public activeQuotes;
 
     // --- Events ---

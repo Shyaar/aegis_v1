@@ -14,6 +14,9 @@ interface IAegisReserve {
         uint256 timestamp;
     }
 
+    function nextClaimId() external view returns (uint256);
+    function claims(uint256 claimId) external view returns (address swapper, address token, uint256 amount, bool settled, uint256 timestamp);
+
     /**
      * @notice Records a claim for a swapper.
      * @param swapper The address of the insured swapper.
