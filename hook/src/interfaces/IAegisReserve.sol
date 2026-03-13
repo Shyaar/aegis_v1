@@ -15,7 +15,18 @@ interface IAegisReserve {
     }
 
     function nextClaimId() external view returns (uint256);
-    function claims(uint256 claimId) external view returns (address swapper, address token, uint256 amount, bool settled, uint256 timestamp);
+    function claims(
+        uint256 claimId
+    )
+        external
+        view
+        returns (
+            address swapper,
+            address token,
+            uint256 amount,
+            bool settled,
+            uint256 timestamp
+        );
 
     /**
      * @notice Records a claim for a swapper.
@@ -23,7 +34,11 @@ interface IAegisReserve {
      * @param token The address of the token for compensation.
      * @param amount The compensation amount owed.
      */
-    function recordClaim(address swapper, address token, uint256 amount) external;
+    function recordClaim(
+        address swapper,
+        address token,
+        uint256 amount
+    ) external;
 
     /**
      * @notice Deposits premiums into the reserve.

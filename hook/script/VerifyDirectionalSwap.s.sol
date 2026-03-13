@@ -15,15 +15,14 @@ import {IAegisPolicy} from "../src/interfaces/IAegisPolicy.sol";
 import {IAegisReserve} from "../src/interfaces/IAegisReserve.sol";
 import {AegisReserve} from "../src/AegisReserve.sol";
 import {MockERC20} from "@uniswap/v4-periphery/lib/v4-core/lib/solmate/src/test/utils/mocks/MockERC20.sol";
-
-import {ModifyLiquidityParams, SwapParams} from "@uniswap/v4-core/src/types/PoolOperation.sol";
 import {LPFeeLibrary} from "@uniswap/v4-core/src/libraries/LPFeeLibrary.sol";
+import {SwapParams} from "@uniswap/v4-core/src/types/PoolOperation.sol";
 
-contract VerifyAegis is Script {
+contract VerifyDirectionalSwap is Script {
     using PoolIdLibrary for PoolKey;
     using CurrencyLibrary for Currency;
 
-    // Deployed addresses (from run-latest.json)
+    // Use current session's deployed addresses
     address constant AEGIS_ADDR = address(uint160(0x00610178da211fef7d417bc0e6fed39f05609ad788));
     address constant USDC_ADDR = address(uint160(0x00b7f8bc63bbcad18155201308c8f3540b07f84f5e));
     address constant MANAGER_ADDR = address(uint160(0x00a51c1fc2f0d1a1b8494ed1fe312d7c3a78ed91c0));
@@ -32,27 +31,10 @@ contract VerifyAegis is Script {
 
     function run() external {
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
-        address deployerAddr = vm.addr(deployerPrivateKey);
-        
         vm.startBroadcast(deployerPrivateKey);
 
-        // 0. Mint tokens to deployer
-        MockERC20(AEGIS_ADDR).mint(deployerAddr, 10000 ether);
-        MockERC20(USDC_ADDR).mint(deployerAddr, 10000 ether);
-
-        // 0.5 seed reserve capital (owner is deployer)
-        AegisReserve reserveInstance = AegisReserve(RESERVE_ADDR);
-        console.log("Reserve Address:", RESERVE_ADDR);
-        console.log("Deployer Address:", deployerAddr);
-        console.log("Reserve Owner:", reserveInstance.owner());
-
-        reserveInstance.seedReserve(100000 ether);
-
-        // 1. Deploy Test Routers
-        PoolModifyLiquidityTest lpRouter = new PoolModifyLiquidityTest(IPoolManager(MANAGER_ADDR));
         PoolSwapTest swapRouter = new PoolSwapTest(IPoolManager(MANAGER_ADDR));
 
-        // 2. Setup Pool Key
         (Currency currency0, Currency currency1) = AEGIS_ADDR < USDC_ADDR 
             ? (Currency.wrap(AEGIS_ADDR), Currency.wrap(USDC_ADDR))
             : (Currency.wrap(USDC_ADDR), Currency.wrap(AEGIS_ADDR));
@@ -65,33 +47,16 @@ contract VerifyAegis is Script {
             hooks: IHooks(HOOK_ADDR)
         });
 
-        // 3. Provide Liquidity
-        MockERC20(Currency.unwrap(currency0)).approve(address(lpRouter), 1000 ether);
-        MockERC20(Currency.unwrap(currency1)).approve(address(lpRouter), 1000 ether);
-
-        lpRouter.modifyLiquidity(
-            key,
-            ModifyLiquidityParams({
-                tickLower: -120,
-                tickUpper: 120,
-                liquidityDelta: 100 ether,
-                salt: 0
-            }),
-            ""
-        );
-        console.log("Liquidity provided to pool");
-
-        // 4. Perform Swap with Aegis Insurance
-        // hookData = abi.encode(CoverageTier.Full) = 2
+        // Test CASE 1: Exact Output Swap (Direction: 0 for 1)
+        console.log("--- TEST CASE 1: Exact Output Swap (0 for 1) ---");
         bytes memory hookData = abi.encode(IAegisPolicy.CoverageTier.Full);
-        
         MockERC20(Currency.unwrap(currency0)).approve(address(swapRouter), 10 ether);
 
         swapRouter.swap(
             key,
             SwapParams({
                 zeroForOne: true,
-                amountSpecified: -1 ether, // Exact input
+                amountSpecified: 0.1 ether, // Exact outcome: want 0.1 ether of currency1
                 sqrtPriceLimitX96: TickMath.MIN_SQRT_PRICE + 1
             }),
             PoolSwapTest.TestSettings({
@@ -100,24 +65,40 @@ contract VerifyAegis is Script {
             }),
             hookData
         );
-        console.log("Swap with Aegis insurance completed");
+        
+        checkLastClaim();
 
-        // 5. Verify Claim in Reserve
+        // Test CASE 2: Exact Output Swap (Direction: 1 for 0)
+        console.log("--- TEST CASE 2: Exact Output Swap (1 for 0) ---");
+        MockERC20(Currency.unwrap(currency1)).approve(address(swapRouter), 10 ether);
+
+        swapRouter.swap(
+            key,
+            SwapParams({
+                zeroForOne: false,
+                amountSpecified: 0.1 ether, // Exact outcome: want 0.1 ether of currency0
+                sqrtPriceLimitX96: TickMath.MAX_SQRT_PRICE - 1
+            }),
+            PoolSwapTest.TestSettings({
+                takeClaims: false,
+                settleUsingBurn: false
+            }),
+            hookData
+        );
+
+        checkLastClaim();
+
+        vm.stopBroadcast();
+    }
+
+    function checkLastClaim() internal view {
         IAegisReserve reserve = IAegisReserve(RESERVE_ADDR);
         uint256 claimId = reserve.nextClaimId() - 1;
         (address swapper, address token, uint256 amount, bool settled,) = reserve.claims(claimId);
         
-        console.log("Claim Recorded:");
-        console.log("- Swapper:", swapper);
-        console.log("- Token:", token);
-        console.log("- Amount:", amount);
-        console.log("- Settled:", settled);
-
-        // 6. Settle Claim
-        reserve.settleClaim(claimId);
-        (,,, settled,) = reserve.claims(claimId);
-        console.log("Claim settled:", settled);
-
-        vm.stopBroadcast();
+        console.log("Last Claim ID:", claimId);
+        console.log("- Token Compensated:", token);
+        console.log("- Compensation Amount:", amount);
+        console.log("-----------------------------------------");
     }
 }

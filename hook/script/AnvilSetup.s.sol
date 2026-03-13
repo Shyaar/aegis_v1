@@ -11,9 +11,11 @@ import {IHooks} from "@uniswap/v4-core/src/interfaces/IHooks.sol";
 import {AegisHook} from "../src/AegisHook.sol";
 import {AegisPolicy} from "../src/AegisPolicy.sol";
 import {AegisReserve} from "../src/AegisReserve.sol";
+import {AegisOracle} from "../src/AegisOracle.sol";
 import {MockERC20} from "solmate/src/test/utils/mocks/MockERC20.sol";
 import {Hooks} from "@uniswap/v4-core/src/libraries/Hooks.sol";
 import {TickMath} from "@uniswap/v4-core/src/libraries/TickMath.sol";
+import {LPFeeLibrary} from "@uniswap/v4-core/src/libraries/LPFeeLibrary.sol";
 
 import {HookMiner} from "@uniswap/v4-periphery/src/utils/HookMiner.sol";
 
@@ -44,11 +46,12 @@ contract AnvilSetup is Script {
         // 4. Deploy Aegis Suite
         AegisPolicy policy = new AegisPolicy();
         AegisReserve reserve = new AegisReserve(deployerAddr);
+        AegisOracle oracle = new AegisOracle();
         
         // 5. Mine Hook Address
-        uint160 flags = uint160(Hooks.BEFORE_SWAP_FLAG | Hooks.AFTER_SWAP_FLAG);
+        uint160 flags = uint160(Hooks.BEFORE_INITIALIZE_FLAG | Hooks.BEFORE_SWAP_FLAG | Hooks.AFTER_SWAP_FLAG);
         
-        bytes memory constructorArgs = abi.encode(address(manager), address(policy), address(reserve));
+        bytes memory constructorArgs = abi.encode(address(manager), address(policy), address(reserve), address(oracle));
         
         // Use the standard CREATE2 factory address used by forge script
         address CREATE2_FACTORY = 0x4e59b44847b379578588920cA78FbF26c0B4956C;
@@ -60,7 +63,7 @@ contract AnvilSetup is Script {
             constructorArgs
         );
 
-        AegisHook hook = new AegisHook{salt: salt}(IPoolManager(address(manager)), address(policy), address(reserve));
+        AegisHook hook = new AegisHook{salt: salt}(IPoolManager(address(manager)), address(policy), address(reserve), address(oracle));
         require(address(hook) == hookAddr, "Hook address mismatch");
         
         reserve.setHook(address(hook));
@@ -70,7 +73,7 @@ contract AnvilSetup is Script {
         PoolKey memory key = PoolKey({
             currency0: currency0,
             currency1: currency1,
-            fee: 3000,
+            fee: LPFeeLibrary.DYNAMIC_FEE_FLAG,
             tickSpacing: 60,
             hooks: IHooks(address(hook))
         });

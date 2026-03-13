@@ -21,18 +21,23 @@ interface IAegisPolicy {
      */
     function calculatePremium(PolicyParams calldata params) external pure returns (uint256);
 
-    /**
-     * @notice Suggests a dynamic swap fee based on market influx.
-     * @return dynamicFee in basis points (e.g., 3000 = 0.3%)
-     */
-    function calculateDynamicFee(uint24 currentFee, uint256 volatilitySignal) external pure returns (uint24);
+
 
     /**
-     * @notice Calculates the owed compensation if slippage is breached.
+     * @notice Calculates the owed compensation if slippage is breached on an exact input swap.
      */
     function calculateCompensation(
         uint256 expectedOut,
         uint256 actualOut,
+        CoverageTier tier
+    ) external pure returns (uint256);
+
+    /**
+     * @notice Calculates the owed compensation if slippage is breached on an exact output swap.
+     */
+    function calculateExactOutputCompensation(
+        uint256 expectedIn,
+        uint256 actualIn,
         CoverageTier tier
     ) external pure returns (uint256);
 }

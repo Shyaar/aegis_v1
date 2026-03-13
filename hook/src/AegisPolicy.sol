@@ -39,21 +39,7 @@ contract AegisPolicy is IAegisPolicy {
         return (params.swapSize * basePremiumBps) / BPS;
     }
 
-    /**
-     * @inheritdoc IAegisPolicy
-     */
-    function calculateDynamicFee(uint24 currentFee, uint256 volatilitySignal) external pure returns (uint24) {
-        // Simple scaling: if volatilitySignal (BPS) is high, increase fee
-        // volatilitySignal is deviation in BPS over last window
-        
-        if (volatilitySignal > 500) { // > 5% move
-            return 3000; // 0.3%
-        } else if (volatilitySignal < 50) { // < 0.5% move
-            return 100; // 0.01%
-        }
-        
-        return currentFee; // stable
-    }
+
 
     /**
      * @inheritdoc IAegisPolicy
@@ -77,6 +63,38 @@ contract AegisPolicy is IAegisPolicy {
         }
 
         uint256 thresholdAmount = (expectedOut * thresholdBps) / BPS;
+
+        if (deviation > thresholdAmount) {
+            // Pay the full deviation once threshold is breached
+            return deviation;
+        }
+
+        return 0;
+    }
+
+    /**
+     * @inheritdoc IAegisPolicy
+     */
+    function calculateExactOutputCompensation(
+        uint256 expectedIn,
+        uint256 actualIn,
+        CoverageTier tier
+    ) external pure returns (uint256) {
+        if (tier == CoverageTier.None || actualIn <= expectedIn) return 0;
+
+        uint256 deviation = actualIn - expectedIn;
+        uint256 thresholdBps;
+
+        if (tier == CoverageTier.Basic) {
+            thresholdBps = 100; // 1%
+        } else if (tier == CoverageTier.Standard) {
+            thresholdBps = 50;  // 0.5%
+        } else {
+            thresholdBps = 20;  // 0.2%
+        }
+
+        // The threshold is based on the expected input amount
+        uint256 thresholdAmount = (expectedIn * thresholdBps) / BPS;
 
         if (deviation > thresholdAmount) {
             // Pay the full deviation once threshold is breached

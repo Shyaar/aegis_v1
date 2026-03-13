@@ -3,7 +3,9 @@ pragma solidity ^0.8.26;
 
 import {IAegisReserve} from "./interfaces/IAegisReserve.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
-import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {
+    SafeERC20
+} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 /**
@@ -19,8 +21,16 @@ contract AegisReserve is IAegisReserve, Ownable {
     address public hook;
 
     event PremiumDeposited(uint256 amount);
-    event ClaimRecorded(uint256 indexed claimId, address swapper, uint256 amount);
-    event ClaimSettled(uint256 indexed claimId, address swapper, uint256 amount);
+    event ClaimRecorded(
+        uint256 indexed claimId,
+        address swapper,
+        uint256 amount
+    );
+    event ClaimSettled(
+        uint256 indexed claimId,
+        address swapper,
+        uint256 amount
+    );
 
     modifier onlyHook() {
         require(msg.sender == hook, "Only hook can call");
@@ -36,7 +46,11 @@ contract AegisReserve is IAegisReserve, Ownable {
     /**
      * @inheritdoc IAegisReserve
      */
-    function recordClaim(address swapper, address token, uint256 amount) external onlyHook {
+    function recordClaim(
+        address swapper,
+        address token,
+        uint256 amount
+    ) external onlyHook {
         uint256 claimId = nextClaimId++;
         claims[claimId] = Claim({
             swapper: swapper,
