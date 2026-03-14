@@ -42,9 +42,10 @@ interface IAegisReserve {
 
     /**
      * @notice Deposits premiums into the reserve.
+     * @param token The address of the token being deposited.
      * @param amount The premium amount collected.
      */
-    function depositPremium(uint256 amount) external;
+    function depositPremium(address token, uint256 amount) external;
 
     /**
      * @notice Allows a swapper to claim their deferred compensation.
@@ -53,7 +54,7 @@ interface IAegisReserve {
     function settleClaim(uint256 claimId) external;
 
     /**
-     * @notice Returns the depth of the insurance reserve for a given pool.
+     * @notice Returns the depth of the insurance reserve for a given token.
      */
-    function getReserveBalance() external view returns (uint256);
+    function getReserveBalance(address token) external view returns (uint256);
 }

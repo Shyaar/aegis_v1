@@ -17,7 +17,7 @@ contract AegisReserve is IAegisReserve, Ownable {
 
     mapping(uint256 => Claim) public claims;
     uint256 public nextClaimId;
-    uint256 public totalReserve;
+    mapping(address => uint256) public totalReserve;
     address public hook;
 
     event PremiumDeposited(uint256 amount);
@@ -32,8 +32,15 @@ contract AegisReserve is IAegisReserve, Ownable {
         uint256 amount
     );
 
+    error NotHook();
+    error InvalidSwapper();
+    error InvalidToken();
+    error ZeroAmount();
+    error InsufficientReserve();
+    error AlreadySettled();
+
     modifier onlyHook() {
-        require(msg.sender == hook, "Only hook can call");
+        if(msg.sender != hook) revert NotHook();
         _;
     }
 
@@ -51,6 +58,10 @@ contract AegisReserve is IAegisReserve, Ownable {
         address token,
         uint256 amount
     ) external onlyHook {
+        if (swapper == address(0)) revert InvalidSwapper();
+        if (amount == 0) revert ZeroAmount();
+        if (totalReserve[token] < amount) revert InsufficientReserve();
+
         uint256 claimId = nextClaimId++;
         claims[claimId] = Claim({
             swapper: swapper,
@@ -65,17 +76,18 @@ contract AegisReserve is IAegisReserve, Ownable {
 
     /**
      * @notice Seeds the reserve with initial capital (owner only).
+     * @param token The address of the token being seeded.
      * @param amount The amount of capital to record in the reserve.
      */
-    function seedReserve(uint256 amount) external onlyOwner {
-        totalReserve += amount;
+    function seedReserve(address token, uint256 amount) external payable onlyOwner {
+        totalReserve[token] += amount;
     }
 
     /**
      * @inheritdoc IAegisReserve
      */
-    function depositPremium(uint256 amount) external onlyHook {
-        totalReserve += amount;
+    function depositPremium(address token, uint256 amount) external onlyHook {
+        totalReserve[token] += amount;
         emit PremiumDeposited(amount);
     }
 
@@ -84,14 +96,20 @@ contract AegisReserve is IAegisReserve, Ownable {
      */
     function settleClaim(uint256 claimId) external {
         Claim storage claim = claims[claimId];
-        require(!claim.settled, "Already settled");
-        // For POC: In production, totalReserve would be per-token.
-        require(totalReserve >= claim.amount, "Insufficient reserve");
+        if (claim.settled) revert AlreadySettled();
+        if (totalReserve[claim.token] < claim.amount) revert InsufficientReserve();
 
         claim.settled = true;
-        totalReserve -= claim.amount;
+        totalReserve[claim.token] -= claim.amount;
 
-        IERC20(claim.token).safeTransfer(claim.swapper, claim.amount);
+        if (claim.token == address(0)) {
+            // Handle native ETH
+            (bool success, ) = claim.swapper.call{value: claim.amount}("");
+            require(success, "ETH transfer failed");
+        } else {
+            // Handle ERC20
+            IERC20(claim.token).safeTransfer(claim.swapper, claim.amount);
+        }
 
         emit ClaimSettled(claimId, claim.swapper, claim.amount);
     }
@@ -99,7 +117,10 @@ contract AegisReserve is IAegisReserve, Ownable {
     /**
      * @inheritdoc IAegisReserve
      */
-    function getReserveBalance() external view returns (uint256) {
-        return totalReserve;
+    function getReserveBalance(address token) external view returns (uint256) {
+        return totalReserve[token];
     }
+
+    // Required to receive ETH from PoolManager.take()
+    receive() external payable {}
 }

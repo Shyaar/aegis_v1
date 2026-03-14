@@ -6,7 +6,10 @@ pragma solidity ^0.8.26;
  * @notice Pure stateless logic for Aegis Protocol pricing and risk evaluation.
  */
 interface IAegisPolicy {
-    enum CoverageTier { None, Basic, Standard, Full }
+
+    error InvalidTier();
+    
+    enum CoverageTier { None, Basic, Standard, Premium }
 
     struct PolicyParams {
         uint256 swapSize;

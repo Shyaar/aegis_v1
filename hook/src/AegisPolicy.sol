@@ -15,7 +15,9 @@ contract AegisPolicy is IAegisPolicy {
     /**
      * @inheritdoc IAegisPolicy
      */
-    function calculatePremium(PolicyParams calldata params) external pure returns (uint256) {
+    function calculatePremium(
+        PolicyParams calldata params
+    ) external pure returns (uint256) {
         uint256 basePremiumBps;
         if (params.tier == CoverageTier.None) {
             return 0;
@@ -25,21 +27,21 @@ contract AegisPolicy is IAegisPolicy {
             basePremiumBps = 5; // 0.05%
         } else if (params.tier == CoverageTier.Standard) {
             basePremiumBps = 10; // 0.1%
-        } else {
+        } else if (params.tier == CoverageTier.Premium) {
             basePremiumBps = 20; // 0.2%
+        } else {
+            revert InvalidTier(); // ← catch unknown tiers
         }
 
         // Add volatility surcharge
         // If volatility is > 1000 bps (10%), add 50% more premium
         if (params.volatilitySignal > 1000) {
-            basePremiumBps += 5;
+            basePremiumBps += basePremiumBps / 2;
         }
 
         // premium = (size * bps) / 10000
         return (params.swapSize * basePremiumBps) / BPS;
     }
-
-
 
     /**
      * @inheritdoc IAegisPolicy
@@ -57,9 +59,11 @@ contract AegisPolicy is IAegisPolicy {
         if (tier == CoverageTier.Basic) {
             thresholdBps = 100; // 1%
         } else if (tier == CoverageTier.Standard) {
-            thresholdBps = 50;  // 0.5%
+            thresholdBps = 50; // 0.5%
+        } else if (tier == CoverageTier.Premium) {
+            thresholdBps = 20; // 0.2%
         } else {
-            thresholdBps = 20;  // 0.2%
+            revert InvalidTier();
         }
 
         uint256 thresholdAmount = (expectedOut * thresholdBps) / BPS;
@@ -88,9 +92,11 @@ contract AegisPolicy is IAegisPolicy {
         if (tier == CoverageTier.Basic) {
             thresholdBps = 100; // 1%
         } else if (tier == CoverageTier.Standard) {
-            thresholdBps = 50;  // 0.5%
+            thresholdBps = 50; // 0.5%
+        } else if (tier == CoverageTier.Premium) {
+            thresholdBps = 20; // 0.2%
         } else {
-            thresholdBps = 20;  // 0.2%
+            revert InvalidTier();
         }
 
         // The threshold is based on the expected input amount

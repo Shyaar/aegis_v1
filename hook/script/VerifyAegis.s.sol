@@ -41,12 +41,12 @@ contract VerifyAegis is Script {
         MockERC20(USDC_ADDR).mint(deployerAddr, 10000 ether);
 
         // 0.5 seed reserve capital (owner is deployer)
-        AegisReserve reserveInstance = AegisReserve(RESERVE_ADDR);
+        AegisReserve reserveInstance = AegisReserve(payable(RESERVE_ADDR));
         console.log("Reserve Address:", RESERVE_ADDR);
         console.log("Deployer Address:", deployerAddr);
         console.log("Reserve Owner:", reserveInstance.owner());
 
-        reserveInstance.seedReserve(100000 ether);
+        reserveInstance.seedReserve(USDC_ADDR, 100000 ether);
 
         // 1. Deploy Test Routers
         PoolModifyLiquidityTest lpRouter = new PoolModifyLiquidityTest(IPoolManager(MANAGER_ADDR));
@@ -82,8 +82,8 @@ contract VerifyAegis is Script {
         console.log("Liquidity provided to pool");
 
         // 4. Perform Swap with Aegis Insurance
-        // hookData = abi.encode(CoverageTier.Full) = 2
-        bytes memory hookData = abi.encode(IAegisPolicy.CoverageTier.Full);
+        // hookData = abi.encode(CoverageTier.Premium) = 2
+        bytes memory hookData = abi.encode(IAegisPolicy.CoverageTier.Premium);
         
         MockERC20(Currency.unwrap(currency0)).approve(address(swapRouter), 10 ether);
 

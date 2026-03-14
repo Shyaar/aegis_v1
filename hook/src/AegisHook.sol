@@ -193,7 +193,13 @@ contract AegisHook is BaseHook {
             });
 
             // Collect premium
-            reserve.depositPremium(premium);
+            Currency inputCurrency = params.zeroForOne ? key.currency0 : key.currency1;
+            
+            // Actually pull the physical tokens off the PoolManager and send them straight to the reserve
+            poolManager.take(inputCurrency, address(reserve), premium);
+
+            // Update the accounting on the Reserve side
+            reserve.depositPremium(Currency.unwrap(inputCurrency), premium);
 
             emit InsuranceQuoted(swapper, sqrtPriceX96, tier);
         }

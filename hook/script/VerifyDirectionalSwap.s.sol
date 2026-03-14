@@ -49,7 +49,7 @@ contract VerifyDirectionalSwap is Script {
 
         // Test CASE 1: Exact Output Swap (Direction: 0 for 1)
         console.log("--- TEST CASE 1: Exact Output Swap (0 for 1) ---");
-        bytes memory hookData = abi.encode(IAegisPolicy.CoverageTier.Full);
+        bytes memory hookData = abi.encode(IAegisPolicy.CoverageTier.Premium);
         MockERC20(Currency.unwrap(currency0)).approve(address(swapRouter), 10 ether);
 
         swapRouter.swap(

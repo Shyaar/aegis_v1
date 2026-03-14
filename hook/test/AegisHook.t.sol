@@ -27,12 +27,15 @@ contract AegisHookTest is Test {
         reserve = new AegisReserve(address(this));
         oracle = new AegisOracle();
         
-        uint160 flags = uint160(Hooks.BEFORE_INITIALIZE_FLAG | Hooks.BEFORE_SWAP_FLAG | Hooks.AFTER_SWAP_FLAG);
+        uint160 flags = uint160(
+            Hooks.BEFORE_INITIALIZE_FLAG | 
+            Hooks.BEFORE_SWAP_FLAG | 
+            Hooks.AFTER_SWAP_FLAG
+        );
         bytes memory constructorArgs = abi.encode(address(manager), address(policy), address(reserve), address(oracle));
         // Deploy CREATE2_FACTORY if not present, but forge test usually has it.
-        address CREATE2_FACTORY = 0x4e59b44847b379578588920cA78FbF26c0B4956C;
         (, bytes32 salt) = HookMiner.find(
-            CREATE2_FACTORY,
+            address(this),
             flags,
             type(AegisHook).creationCode,
             constructorArgs
