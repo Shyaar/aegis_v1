@@ -61,6 +61,7 @@ contract AegisReserve is IAegisReserve, Ownable {
         if (swapper == address(0)) revert InvalidSwapper();
         if (amount == 0) revert ZeroAmount();
         if (totalReserve[token] < amount) revert InsufficientReserve();
+        totalReserve[token] -= amount;
 
         uint256 claimId = nextClaimId++;
         claims[claimId] = Claim({
@@ -80,6 +81,9 @@ contract AegisReserve is IAegisReserve, Ownable {
      * @param amount The amount of capital to record in the reserve.
      */
     function seedReserve(address token, uint256 amount) external payable onlyOwner {
+        if (token != address(0)) {
+            IERC20(token).safeTransferFrom(msg.sender, address(this), amount);
+        }
         totalReserve[token] += amount;
     }
 
