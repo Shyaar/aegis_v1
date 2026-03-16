@@ -11,6 +11,9 @@
 }
 
 @layer base {
+  html {
+    scroll-behavior: smooth;
+  }
   body {
     background-color: var(--color-aegis-bg);
     color: var(--color-aegis-text);
@@ -30,10 +33,19 @@
   }
 
   .glow-text {
-    text-shadow: 0 0 10px rgba(0, 242, 255, 0.5);
+    text-shadow: 0 0 20px rgba(0, 242, 255, 0.3);
   }
 
   .accent-gradient {
     background: linear-gradient(135deg, #00f2ff 0%, #0077ff 100%);
+  }
+
+  .text-gradient {
+    background: linear-gradient(135deg, #00f2ff 0%, #0077ff 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+    display: inline-block; /* Helps with clipping in some browsers */
   }
 }

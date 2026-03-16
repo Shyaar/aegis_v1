@@ -10,7 +10,7 @@ export default function Footer() {
       <div className="flex gap-12 text-[10px] font-bold text-aegis-text-dim/60 whitespace-nowrap overflow-hidden">
         <span>User 0x42...f23 saved <span className="text-aegis-accent">$12.42</span> in slippage</span>
         <span>User 0x1a...de9 saved <span className="text-aegis-accent">$4.10</span> in slippage</span>
-        <span>User 0xde...9b2 protected swap execution on ETH/USDT</span>
+        <span>User 0xde...9b2 protected swap execution on ETH/USDC</span>
       </div>
     </div>
   )

@@ -1,6 +1,6 @@
-import { redirect } from "next/navigation"
-import SwapPage from "./swap/page"
+// import { redirect } from "next/navigation"
+import LandingPage from "./landing/page"
 
 export default function Home() {
-  return <SwapPage />
+  return <LandingPage />
 }

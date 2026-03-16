@@ -19,6 +19,8 @@ export const metadata: Metadata = {
   description: "Native slippage insurance embedded in Uniswap v4",
 };
 
+import Providers  from "@/components/providers/Providers";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -29,9 +31,11 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} bg-[#030305] text-[#F0F0F5] antialiased pb-10`}
       >
-        <Header />
-        {children}
-        <Footer />
+        <Providers>
+          <Header />
+          {children}
+          <Footer />
+        </Providers>
       </body>
     </html>
   );

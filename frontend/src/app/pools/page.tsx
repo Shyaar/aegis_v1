@@ -6,7 +6,7 @@ export default function PoolsPage() {
   const pools = [
     { id: 1, pair: "ETH / USDC", totalLiquidity: "$12.4M", insuranceReserve: "$420,000", totalPremiums: "$24,500", apr: "18.4%" },
     { id: 2, pair: "WBTC / ETH", totalLiquidity: "$8.1M", insuranceReserve: "$150,000", totalPremiums: "$12,100", apr: "14.2%" },
-    { id: 3, pair: "USDT / USDC", totalLiquidity: "$24.5M", insuranceReserve: "$890,000", totalPremiums: "$5,400", apr: "6.8%" },
+    { id: 3, pair: "USDC / DAI", totalLiquidity: "$24.5M", insuranceReserve: "$890,000", totalPremiums: "$5,400", apr: "6.8%" },
   ]
 
   return (
@@ -60,14 +60,14 @@ export default function PoolsPage() {
         </div>
         <div className="divide-y divide-aegis-border/10">
           {pools.map((pool) => (
-            <div key={pool.id} className="grid grid-cols-5 p-8 items-center group hover:bg-white/[0.02] transition-all cursor-pointer">
+            <div key={pool.id} className="grid grid-cols-5 p-8 items-center group hover:bg-white/5 transition-all cursor-pointer">
               <div className="col-span-2 flex items-center gap-4">
                 <div className="flex -space-x-4">
                   <div className="w-10 h-10 rounded-full border-2 border-aegis-bg bg-white p-1 z-10 overflow-hidden">
                     <img src={pool.pair.includes("ETH") ? "https://cryptologos.cc/logos/ethereum-eth-logo.svg" : "https://cryptologos.cc/logos/wrapped-bitcoin-wbtc-logo.svg"} alt="Token0" className="w-full h-full object-contain" />
                   </div>
                   <div className="w-10 h-10 rounded-full border-2 border-aegis-bg bg-white p-1 overflow-hidden">
-                    <img src={pool.pair.includes("USDC") ? "https://cryptologos.cc/logos/usd-coin-usdc-logo.svg" : pool.pair.includes("USDT") ? "https://cryptologos.cc/logos/tether-usdt-logo.svg" : "https://cryptologos.cc/logos/ethereum-eth-logo.svg"} alt="Token1" className="w-full h-full object-contain" />
+                    <img src={pool.pair.includes("USDC") ? "https://cryptologos.cc/logos/usd-coin-usdc-logo.svg" : pool.pair.includes("DAI") ? "https://cryptologos.cc/logos/dai-dai-logo.svg" : "https://cryptologos.cc/logos/ethereum-eth-logo.svg"} alt="Token1" className="w-full h-full object-contain" />
                   </div>
                 </div>
                 <div>
@@ -101,8 +101,8 @@ export default function PoolsPage() {
         <div className="space-y-4">
           <h3 className="text-3xl font-black tracking-tighter uppercase">Why Underwrite with Aegis?</h3>
           <p className="text-aegis-text-dim font-medium max-w-2xl leading-relaxed">
-            Standard Uniswap v4 LPs only earn swap fees. Aegis LPs earn **Swap Fees + Insurance Premiums**. 
-            During low-volatility periods, you collect free premiums. During high volatility, 
+            Standard Uniswap v4 LPs only earn swap fees. Aegis LPs earn **Swap Fees + Insurance Premiums**.
+            During low-volatility periods, you collect free premiums. During high volatility,
             Dynamic Fees increase to protect your principal.
           </p>
           <div className="flex gap-4">

@@ -22,19 +22,17 @@ export default function ProtectionModal({ isOpen, onClose, selectedTier, onSelec
     <Modal isOpen={isOpen} onClose={onClose} title="Protection Settings">
       <div className="space-y-4">
         {tiers.map((tier) => (
-          <div 
+          <div
             key={tier.name}
-            className={`p-6 rounded-3xl border transition-all cursor-pointer flex items-center justify-between group ${
-              selectedTier === tier.name 
-                ? "bg-aegis-accent/10 border-aegis-accent" 
+            className={`p-6 rounded-3xl border transition-all cursor-pointer flex items-center justify-between group ${selectedTier === tier.name
+                ? "bg-aegis-accent/10 border-aegis-accent"
                 : "bg-white/5 border-aegis-border hover:bg-white/10"
-            }`}
+              }`}
             onClick={() => onSelectTier(tier.name)}
           >
             <div className="flex items-center gap-4">
-              <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${
-                selectedTier === tier.name ? "bg-aegis-accent/20 text-aegis-accent" : "bg-white/5 text-aegis-text-dim"
-              }`}>
+              <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${selectedTier === tier.name ? "bg-aegis-accent/20 text-aegis-accent" : "bg-white/5 text-aegis-text-dim"
+                }`}>
                 {tier.icon}
               </div>
               <div>
@@ -54,14 +52,14 @@ export default function ProtectionModal({ isOpen, onClose, selectedTier, onSelec
             )}
           </div>
         ))}
-        
+
         <div className="mt-8 p-6 bg-white/5 rounded-3xl border border-aegis-border/30">
           <p className="text-[11px] font-bold text-aegis-text-dim leading-relaxed uppercase tracking-wider">
             Slippage protection is atomic. If the execution price exceeds your threshold, the difference is paid out directly into your wallet by the Aegis Reserve.
           </p>
         </div>
 
-        <button 
+        <button
           onClick={onClose}
           className="w-full py-5 rounded-2xl accent-gradient text-black font-black text-sm mt-4 glow-accent hover:opacity-90 transition-all"
         >

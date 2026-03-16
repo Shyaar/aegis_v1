@@ -3,13 +3,13 @@
 import { useState } from "react"
 import SwapCard from "@/components/swap/SwapCard"
 
-export default function SwapPage() {
+export default function Swap() {
   const [activeTab, setActiveTab] = useState("Swap")
 
   return (
     <main className="max-w-[1400px] mx-auto px-6 py-16 flex flex-col items-center">
       <div className="flex bg-white/5 p-1.5 rounded-2xl mb-12 border border-aegis-border">
-        {["Swap", "Limit", "Buy", "Sell"].map((tab) => (
+        {["Swap", "Buy", "Sell"].map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}

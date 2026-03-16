@@ -2,12 +2,17 @@
 
 import { ShieldCheck, Zap, BarChart3, Lock, ArrowRight, Shield, Activity, Globe } from "lucide-react"
 import Link from "next/link"
+import Swap from "../swap/swap"
 
 export default function LandingPage() {
   return (
     <div className="flex flex-col items-center">
+      {/*Swap Area*/}
+      <div id="swap" className="scroll-mt-24">
+        <Swap />
+      </div>
       {/* Hero Section */}
-      <section className="w-full max-w-[1400px] px-6 pt-24 pb-32 flex flex-col items-center text-center relative overflow-hidden">
+      <section className="w-full max-w-[1400px] px-6 pt-24 pb-32 flex flex-col items-center text-center relative">
         {/* Background Gradients */}
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[600px] bg-aegis-accent/10 blur-[120px] rounded-full -z-10" />
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-blue-600/10 blur-[100px] rounded-full -z-10" />
@@ -19,11 +24,11 @@ export default function LandingPage() {
 
         <h1 className="text-6xl md:text-8xl font-black tracking-tighter leading-[0.9] mb-8 animate-in fade-in slide-in-from-bottom-6 duration-1000 delay-100">
           SWAP WITHOUT <br />
-          <span className="text-transparent bg-clip-text accent-gradient glow-text">COMPROMISE.</span>
+          <span className="text-gradient glow-text">COMPROMISE.</span>
         </h1>
 
         <p className="max-w-2xl text-lg md:text-xl font-medium text-aegis-text-dim mb-12 animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-200">
-          The first Uniswap v4 hook that natively embeds slippage insurance into every trade. 
+          The first Uniswap v4 hook that natively embeds slippage insurance into every trade.
           Get protected. Get compensated. Automatically.
         </p>
 
@@ -91,10 +96,17 @@ export default function LandingPage() {
         <div className="w-full max-w-[1200px] glass-card rounded-[60px] p-16 md:p-32 relative overflow-hidden flex flex-col items-center text-center border border-aegis-border/20">
           <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-aegis-accent/5 blur-[100px] -z-10" />
           <h2 className="text-4xl md:text-6xl font-black tracking-tighter mb-10 leading-none">
-            READY TO SECURE <br /> YOUR SUBMISSION?
+            READY TO SECURE <br /> Trades?
           </h2>
-          <Link href="/swap" className="px-12 py-6 rounded-[32px] accent-gradient text-black font-black text-xl glow-accent hover:scale-105 transition-all">
-            GET PROTECTED NOW
+          <Link 
+            href="#swap" 
+            onClick={(e) => {
+              e.preventDefault();
+              document.getElementById('swap')?.scrollIntoView({ behavior: 'smooth' });
+            }}
+            className="px-12 py-6 rounded-[32px] accent-gradient text-black font-black text-xl glow-accent hover:scale-105 transition-all"
+          >
+            Swap with protection
           </Link>
         </div>
       </section>
