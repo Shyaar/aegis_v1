@@ -51,8 +51,10 @@ contract AegisSetupTest is Test, Deployers {
         uint160 flags = uint160(
             Hooks.BEFORE_INITIALIZE_FLAG | 
             Hooks.BEFORE_SWAP_FLAG | 
-            Hooks.AFTER_SWAP_FLAG
+            Hooks.AFTER_SWAP_FLAG |
+            Hooks.BEFORE_SWAP_RETURNS_DELTA_FLAG
         );
+
         bytes memory constructorArgs = abi.encode(address(manager), address(policy), address(reserve), address(oracle));
         
         (, bytes32 salt) = HookMiner.find(
@@ -76,6 +78,8 @@ contract AegisSetupTest is Test, Deployers {
         assertTrue(permissions.beforeInitialize, "Should have beforeInitialize flag");
         assertTrue(permissions.beforeSwap, "Should have beforeSwap flag");
         assertTrue(permissions.afterSwap, "Should have afterSwap flag");
+        assertTrue(permissions.beforeSwapReturnDelta, "Should have beforeSwapReturnDelta flag");
+
         
         // Ensure properties we DONT want are false
         assertFalse(permissions.beforeAddLiquidity, "Should NOT have beforeAddLiquidity");

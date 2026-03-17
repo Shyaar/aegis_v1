@@ -1,18 +1,27 @@
 import { useLogin, usePrivy } from '@privy-io/react-auth';
 
 function LoginButton() {
-    const { ready, authenticated} = usePrivy();
+    const { ready, authenticated, user, logout } = usePrivy();
     const { login } = useLogin();
-    
+
     const disableLogin = !ready || (ready && authenticated);
 
+    const shortenAddress = (address?: string) => {
+        if (!address) return '';
+        return `${address.slice(0, 6)}...${address.slice(-4)}`;
+    };
+
+    const walletAddress = user?.wallet?.address;
+
     return (
-        <button  
+        <button
             className="flex items-center gap-2 px-6 py-2.5 rounded-2xl accent-gradient hover:opacity-90 transition-all text-sm font-black text-white glow-accent"
-            disabled={disableLogin} 
-            onClick={login}
+            disabled={!ready}
+            onClick={authenticated ? logout : login}
         >
-            Connect Wallet
+            {authenticated && walletAddress
+                ? shortenAddress(walletAddress)
+                : "Connect Wallet"}
         </button>
     );
 }

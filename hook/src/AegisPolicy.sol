@@ -2,23 +2,55 @@
 pragma solidity ^0.8.26;
 
 import {IAegisPolicy} from "./interfaces/IAegisPolicy.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
 /**
  * @title AegisPolicy
  * @author Aegis Team
  * @notice Logic for insurance premiums and dynamic fee scaling.
  */
-contract AegisPolicy is IAegisPolicy {
+contract AegisPolicy is IAegisPolicy, Ownable {
     // Basis Points (10000 = 100%)
     uint256 public constant BPS = 10000;
+
+    // Extra premium BPS controlled by Reactive Network
+    uint16 public extraBps;
+
+    // The authorized Reactive contract (on destination chain)
+    address public reactiveContract;
+
+    constructor(address initialOwner) Ownable(initialOwner) {}
+
+    function setReactiveContract(address _reactiveContract) external onlyOwner {
+        reactiveContract = _reactiveContract;
+    }
+
+    modifier onlyAuthorized() {
+        require(msg.sender == owner() || msg.sender == reactiveContract, "Not authorized");
+        _;
+    }
+
+    /**
+     * @inheritdoc IAegisPolicy
+     */
+    function updateBasePremium(uint16 additionalBps) external onlyAuthorized {
+        extraBps = additionalBps;
+    }
+
+    /**
+     * @inheritdoc IAegisPolicy
+     */
+    function clearBasePremium() external onlyAuthorized {
+        extraBps = 0;
+    }
 
     /**
      * @inheritdoc IAegisPolicy
      */
     function calculatePremium(
         PolicyParams calldata params
-    ) external pure returns (uint256) {
-        uint256 basePremiumBps;
+    ) external view returns (uint256) {
+        uint256 basePremiumBps = extraBps;
         if (params.tier == CoverageTier.None) {
             return 0;
         }

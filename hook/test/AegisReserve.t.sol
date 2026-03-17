@@ -145,4 +145,26 @@ contract AegisReserveTest is Test, Deployers {
         vm.expectRevert(abi.encodeWithSignature("AlreadySettled()"));
         reserve.settleClaim(id);
     }
+
+    function test_Bug_settleClaim_DeductsTwice() public {
+        uint256 initialSeed = 100 ether;
+        reserve.seedReserve(address(token), initialSeed);
+        
+        uint256 id = reserve.nextClaimId();
+        uint256 claimAmount = 10 ether;
+        
+        vm.prank(hook);
+        reserve.recordClaim(user, address(token), claimAmount);
+
+        // After recordClaim: totalReserve should be 100 - 10 = 90
+        assertEq(reserve.getReserveBalance(address(token)), 90 ether, "Balance after recordClaim should be 90");
+
+        reserve.settleClaim(id);
+
+        // After settleClaim: totalReserve SHOULD still be 90 (or 100 if we didn't deduct in recordClaim)
+        // BUT currently it deducts again, so it will be 80.
+        // This test will FAIL if the bug is present and we assert 90.
+        assertEq(reserve.getReserveBalance(address(token)), 90 ether, "Balance after settleClaim should remain 90");
+    }
 }
+

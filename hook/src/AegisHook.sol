@@ -9,8 +9,10 @@ import {PoolId, PoolIdLibrary} from "@uniswap/v4-core/src/types/PoolId.sol";
 import {BalanceDelta} from "@uniswap/v4-core/src/types/BalanceDelta.sol";
 import {
     BeforeSwapDelta,
-    BeforeSwapDeltaLibrary
+    BeforeSwapDeltaLibrary,
+    toBeforeSwapDelta
 } from "@uniswap/v4-core/src/types/BeforeSwapDelta.sol";
+
 import {SwapParams} from "@uniswap/v4-core/src/types/PoolOperation.sol";
 import {IAegisPolicy} from "./interfaces/IAegisPolicy.sol";
 import {IAegisReserve} from "./interfaces/IAegisReserve.sol";
@@ -62,6 +64,8 @@ contract AegisHook is BaseHook {
         IAegisPolicy.CoverageTier tier
     );
     event CompensationTriggered(address indexed swapper, uint256 amount);
+    event SwapCovered(address indexed swapper, uint256 premium, uint256 amount);
+    event ClaimPaid(address indexed swapper, uint256 compensation);
 
     error MustUseDynamicFee();
 
@@ -125,8 +129,9 @@ contract AegisHook is BaseHook {
                 afterSwap: true,
                 beforeDonate: false,
                 afterDonate: false,
-                beforeSwapReturnDelta: false,
+                beforeSwapReturnDelta: true,
                 afterSwapReturnDelta: false,
+
                 afterAddLiquidityReturnDelta: false,
                 afterRemoveLiquidityReturnDelta: false
             });
@@ -201,7 +206,25 @@ contract AegisHook is BaseHook {
             // Update the accounting on the Reserve side
             reserve.depositPremium(Currency.unwrap(inputCurrency), premium);
 
+            // Return a delta that accounts for the premium taken
+            BeforeSwapDelta hookDelta;
+            if (params.amountSpecified < 0) {
+                // Exact In: hook takes 'premium' from the input
+                hookDelta = toBeforeSwapDelta(int128(int256(premium)), 0);
+            } else {
+                // Exact Out: hook takes 'premium' from the input (which is unspecified)
+                hookDelta = toBeforeSwapDelta(0, int128(int256(premium)));
+            }
+
+
             emit InsuranceQuoted(swapper, sqrtPriceX96, tier);
+            emit SwapCovered(swapper, premium, amountSpecified);
+
+            return (
+                BaseHook.beforeSwap.selector,
+                hookDelta,
+                dynamicFee | LPFeeLibrary.OVERRIDE_FEE_FLAG
+            );
         }
 
         return (
@@ -209,6 +232,7 @@ contract AegisHook is BaseHook {
             BeforeSwapDeltaLibrary.ZERO_DELTA,
             dynamicFee | LPFeeLibrary.OVERRIDE_FEE_FLAG // Signal override fee
         );
+
     }
 
     function _afterSwap(
@@ -231,14 +255,22 @@ contract AegisHook is BaseHook {
         uint256 compensation = 0;
         Currency compCurrency;
 
+        // Get actual amounts swapped from delta
+        int128 amount0Delta = delta.amount0();
+        int128 amount1Delta = delta.amount1();
+
+        uint256 actualIn = uint256(SafeCast.toUint128(
+            quote.zeroForOne ? (amount0Delta > 0 ? amount0Delta : -amount0Delta) : (amount1Delta > 0 ? amount1Delta : -amount1Delta)
+        ));
+        uint256 actualOut = uint256(SafeCast.toUint128(
+            quote.zeroForOne ? (amount1Delta > 0 ? amount1Delta : -amount1Delta) : (amount0Delta > 0 ? amount0Delta : -amount0Delta)
+        ));
+
         if (params.amountSpecified < 0) {
             // --- EXACT INPUT ---
-            // Swapper specified exact input, we compensate on output deficit
-            uint256 amountIn = uint256(-params.amountSpecified);
+            // Calculate expected output based on the ACTUAL input amount
+            uint256 amountInAfterFee = actualIn - FullMath.mulDiv(actualIn, quote.fee, 1_000_000);
 
-            // Step 1: Deduct fee before calculation
-            uint256 amountInAfterFee = amountIn -
-                FullMath.mulDiv(amountIn, quote.fee, 1_000_000);
 
             // Step 2: Calculate expected output using FullMath to avoid overflow
             uint256 expectedOut;
@@ -268,15 +300,6 @@ contract AegisHook is BaseHook {
                 );
             }
 
-            // Step 3: Get actual output safely
-            int128 amountOutDelta = quote.zeroForOne
-                ? delta.amount1()
-                : delta.amount0();
-            uint256 actualOut = uint256(
-                SafeCast.toUint128(
-                    amountOutDelta < 0 ? -amountOutDelta : amountOutDelta
-                )
-            );
 
             compensation = policy.calculateCompensation(
                 expectedOut,
@@ -284,16 +307,17 @@ contract AegisHook is BaseHook {
                 quote.tier
             );
             compCurrency = quote.zeroForOne ? key.currency1 : key.currency0;
+
         } else {
             // --- EXACT OUTPUT ---
-            // Swapper specified exact output, we compensate on input excess
-            uint256 amountOut = uint256(params.amountSpecified);
-
-            // Step 1: Calculate expected input without fee
+            // Calculate expected input based on the ACTUAL output amount
             uint256 expectedInNoFee;
+
             if (quote.zeroForOne) {
+                // selling token0 for token1
+                // expectedIn = amountOut / price
                 expectedInNoFee = FullMath.mulDiv(
-                    amountOut,
+                    actualOut,
                     FixedPoint96.Q96,
                     FullMath.mulDiv(
                         uint256(quote.sqrtPriceX96),
@@ -302,8 +326,9 @@ contract AegisHook is BaseHook {
                     )
                 );
             } else {
+
                 expectedInNoFee = FullMath.mulDiv(
-                    amountOut,
+                    actualOut,
                     FullMath.mulDiv(
                         uint256(quote.sqrtPriceX96),
                         uint256(quote.sqrtPriceX96),
@@ -313,21 +338,12 @@ contract AegisHook is BaseHook {
                 );
             }
 
+
             // Step 2: Adjust for fee
             uint256 expectedIn = FullMath.mulDiv(
                 expectedInNoFee,
                 1_000_000,
                 1_000_000 - quote.fee
-            );
-
-            // Step 3: Get actual input safely
-            int128 amountInDelta = quote.zeroForOne
-                ? delta.amount0()
-                : delta.amount1();
-            uint256 actualIn = uint256(
-                SafeCast.toUint128(
-                    amountInDelta < 0 ? -amountInDelta : amountInDelta
-                )
             );
 
             compensation = policy.calculateExactOutputCompensation(
@@ -336,6 +352,7 @@ contract AegisHook is BaseHook {
                 quote.tier
             );
             compCurrency = quote.zeroForOne ? key.currency0 : key.currency1;
+
         }
 
         delete activeQuotes[swapper];
@@ -347,6 +364,7 @@ contract AegisHook is BaseHook {
                 compensation
             );
             emit CompensationTriggered(swapper, compensation);
+            emit ClaimPaid(swapper, compensation);
         }
 
         // Update Moving Average for Dynamic Fees after swap

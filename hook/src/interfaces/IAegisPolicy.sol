@@ -22,7 +22,7 @@ interface IAegisPolicy {
     /**
      * @notice Calculates the premium a swapper must pay for insurance.
      */
-    function calculatePremium(PolicyParams calldata params) external pure returns (uint256);
+    function calculatePremium(PolicyParams calldata params) external view returns (uint256);
 
 
 
@@ -43,4 +43,14 @@ interface IAegisPolicy {
         uint256 actualIn,
         CoverageTier tier
     ) external pure returns (uint256);
+
+    /**
+     * @notice Updates the extra premium BPS (used by Reactive Network).
+     */
+    function updateBasePremium(uint16 additionalBps) external;
+
+    /**
+     * @notice Resets the extra premium BPS to zero.
+     */
+    function clearBasePremium() external;
 }

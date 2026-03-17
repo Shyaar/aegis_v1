@@ -50,6 +50,7 @@ contract AegisReserve is IAegisReserve, Ownable {
         hook = _hook;
     }
 
+
     /**
      * @inheritdoc IAegisReserve
      */
@@ -101,12 +102,11 @@ contract AegisReserve is IAegisReserve, Ownable {
     function settleClaim(uint256 claimId) external {
         Claim storage claim = claims[claimId];
         if (claim.settled) revert AlreadySettled();
-        if (totalReserve[claim.token] < claim.amount) revert InsufficientReserve();
 
         claim.settled = true;
-        totalReserve[claim.token] -= claim.amount;
 
         if (claim.token == address(0)) {
+
             // Handle native ETH
             (bool success, ) = claim.swapper.call{value: claim.amount}("");
             require(success, "ETH transfer failed");
@@ -128,3 +128,9 @@ contract AegisReserve is IAegisReserve, Ownable {
     // Required to receive ETH from PoolManager.take()
     receive() external payable {}
 }
+
+
+
+
+
+

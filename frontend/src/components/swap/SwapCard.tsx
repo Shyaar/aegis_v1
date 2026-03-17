@@ -14,11 +14,23 @@ import {
   ExternalLink
 } from "lucide-react"
 import { useCoins } from "../coins/fetchCoin"
+import { usePrivy } from "@privy-io/react-auth"
+import { useAegisPremium } from "@/lib/hooks/useAegis"
+import { parseUnits, formatUnits } from "viem"
 
 export default function SwapCard({ activeTab = "Swap" }: { activeTab?: string }) {
   // Placeholders for Privy/Blockchain integration
-  const isConnected = false
-  const address = ""
+  let isConnected = false
+  let address = ""
+
+  const { ready, authenticated, user, logout } = usePrivy();
+
+  // helper to shorten wallet
+    if (user?.wallet?.address){
+      isConnected = true;
+      address = user?.wallet?.address
+    }
+
 
   const ETH_PRICE = 2410.50
   const [isInsured, setIsInsured] = useState(true)
@@ -33,9 +45,17 @@ export default function SwapCard({ activeTab = "Swap" }: { activeTab?: string })
   const sellCoin = getCoinBySymbol(sellSymbol)
   const buyCoin = getCoinBySymbol(buySymbol)
 
-  // Placeholders for blockchain data
-  const movingAverageGas = null
-  const premiumAmount = null
+  // Aegis Contract Integration
+  const { data: premiumAmountData, isLoading: isPremiumLoading } = useAegisPremium({
+    swapSize: parseUnits(sellAmount || "0", sellCoin?.decimals || 18),
+    poolLiquidity: BigInt(1000000) * BigInt(10**18), // Mock liquidity
+    baseFee: 3000, // 30 bps
+    volatilitySignal: BigInt(100), // Mock signal
+    tier: coverageTier,
+  });
+
+  const premiumAmount = premiumAmountData;
+  const movingAverageGas = null;
 
   const handleSellAmountChange = (val: string) => {
     setSellAmount(val)
@@ -86,8 +106,6 @@ export default function SwapCard({ activeTab = "Swap" }: { activeTab?: string })
     alert("Protected Swap Transaction initiated via Uniswap v4 + Aegis Hook")
   }
 
-  const formatUnits = (val: any, decimals: number) => "0.00" // Simple placeholder
-
   const isBuyOrSell = activeTab === "Buy" || activeTab === "Sell"
 
   return (
@@ -109,10 +127,6 @@ export default function SwapCard({ activeTab = "Swap" }: { activeTab?: string })
                 </span>
               )}
             </div>
-            {/* <div className="flex gap-4">
-            <BarChart3 className="w-5 h-5 text-aegis-text-dim cursor-pointer hover:text-white transition-colors" />
-            <Settings className="w-5 h-5 text-aegis-text-dim cursor-pointer hover:text-white transition-colors" />
-          </div> */}
           </div>
 
           <div className="bg-black/50 rounded-3xl p-6 border border-aegis-border group hover:border-white/10 transition-all">
@@ -139,7 +153,6 @@ export default function SwapCard({ activeTab = "Swap" }: { activeTab?: string })
                     <div className="w-6 h-6 bg-white/10 rounded-full animate-pulse" />
                   )}
                   <span className="font-black text-lg">{sellCoin?.symbol || sellSymbol}</span>
-                  {/* <ChevronDown className="w-5 h-5 text-aegis-text-dim" /> */}
                 </div>
 
               ) : (
@@ -215,7 +228,6 @@ export default function SwapCard({ activeTab = "Swap" }: { activeTab?: string })
                     <div className="w-6 h-6 bg-white/10 rounded-full animate-pulse" />
                   )}
                   <span className="font-black text-lg">{buyCoin?.symbol || buySymbol}</span>
-                  {/* <ChevronDown className="w-5 h-5 text-aegis-text-dim" /> */}
                 </div>
 
               </div>
