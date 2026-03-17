@@ -6,3 +6,4 @@ v4-periphery/=lib/v4-periphery/
 permit2/=lib/v4-periphery/lib/permit2/
 solmate/=lib/v4-periphery/lib/v4-core/lib/solmate/
 @openzeppelin/contracts/=lib/v4-periphery/lib/v4-core/lib/openzeppelin-contracts/contracts/
+test/=test/

@@ -50,11 +50,11 @@ contract AegisPolicy is IAegisPolicy, Ownable {
     function calculatePremium(
         PolicyParams calldata params
     ) external view returns (uint256) {
-        uint256 basePremiumBps = extraBps;
         if (params.tier == CoverageTier.None) {
             return 0;
         }
 
+        uint256 basePremiumBps;
         if (params.tier == CoverageTier.Basic) {
             basePremiumBps = 5; // 0.05%
         } else if (params.tier == CoverageTier.Standard) {
@@ -62,8 +62,11 @@ contract AegisPolicy is IAegisPolicy, Ownable {
         } else if (params.tier == CoverageTier.Premium) {
             basePremiumBps = 20; // 0.2%
         } else {
-            revert InvalidTier(); // ← catch unknown tiers
+            revert InvalidTier();
         }
+
+        // Add extra premium from Reactive Network
+        basePremiumBps += extraBps;
 
         // Add volatility surcharge
         // If volatility is > 1000 bps (10%), add 50% more premium

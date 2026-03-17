@@ -7,11 +7,13 @@ import { usePrivy } from "@privy-io/react-auth"
 import LoginButton from "../ui/loginButton"
 import Image from "next/image"
 
-
+import { useState } from "react"
+import FaucetModal from "../modals/FaucetModal"
 
 export default function Header() {
   const ready = usePrivy();
   const pathname = usePathname()
+  const [isFaucetOpen, setIsFaucetOpen] = useState(false)
 
   // Placeholders for Privy integration
   const isConnected = false
@@ -27,6 +29,7 @@ export default function Header() {
   const formatAddress = (addr: string) => `${addr.slice(0, 6)}...${addr.slice(-4)}`
 
   return (
+    <>
     <nav className="flex items-center justify-between px-8 py-4 border-b border-aegis-border bg-aegis-bg/60 backdrop-blur-xl sticky top-0 z-50">
       <div className="flex items-center gap-10">
         <Link href="/landing" className="flex items-center gap-2 group cursor-pointer">
@@ -58,6 +61,12 @@ export default function Header() {
       </div>
 
       <div className="flex items-center gap-4">
+        <button
+          onClick={() => setIsFaucetOpen(true)}
+          className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-xl bg-aegis-accent/10 border border-aegis-accent/30 text-[11px] font-black uppercase text-aegis-accent hover:bg-aegis-accent/20 transition-all"
+        >
+          GET TEST TOKENS
+        </button>
         <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-aegis-border text-[11px] font-bold">
           <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
           TESTNET ACTIVE
@@ -78,5 +87,7 @@ export default function Header() {
         )} */}
       </div>
     </nav>
+      <FaucetModal isOpen={isFaucetOpen} onClose={() => setIsFaucetOpen(false)} />
+    </>
   )
 }

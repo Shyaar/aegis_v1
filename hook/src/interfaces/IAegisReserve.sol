@@ -57,4 +57,14 @@ interface IAegisReserve {
      * @notice Returns the depth of the insurance reserve for a given token.
      */
     function getReserveBalance(address token) external view returns (uint256);
+
+    /** *@notice error handling
+     */
+
+    error NotHook();
+    error InvalidSwapper();
+    error InvalidToken();
+    error ZeroAmount();
+    error InsufficientReserve();
+    error AlreadySettled();
 }

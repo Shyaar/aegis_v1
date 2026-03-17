@@ -9,7 +9,7 @@ contract AegisPolicyTest is Test {
     AegisPolicy public policy;
 
     function setUp() public {
-        policy = new AegisPolicy();
+        policy = new AegisPolicy(address(this));
     }
 
     /* =========================================================================

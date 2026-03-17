@@ -32,15 +32,10 @@ contract AegisReserve is IAegisReserve, Ownable {
         uint256 amount
     );
 
-    error NotHook();
-    error InvalidSwapper();
-    error InvalidToken();
-    error ZeroAmount();
-    error InsufficientReserve();
-    error AlreadySettled();
+ 
 
     modifier onlyHook() {
-        if(msg.sender != hook) revert NotHook();
+        if (msg.sender != hook) revert NotHook();
         _;
     }
 
@@ -49,7 +44,6 @@ contract AegisReserve is IAegisReserve, Ownable {
     function setHook(address _hook) external onlyOwner {
         hook = _hook;
     }
-
 
     /**
      * @inheritdoc IAegisReserve
@@ -81,7 +75,10 @@ contract AegisReserve is IAegisReserve, Ownable {
      * @param token The address of the token being seeded.
      * @param amount The amount of capital to record in the reserve.
      */
-    function seedReserve(address token, uint256 amount) external payable onlyOwner {
+    function seedReserve(
+        address token,
+        uint256 amount
+    ) external payable onlyOwner {
         if (token != address(0)) {
             IERC20(token).safeTransferFrom(msg.sender, address(this), amount);
         }
@@ -106,12 +103,9 @@ contract AegisReserve is IAegisReserve, Ownable {
         claim.settled = true;
 
         if (claim.token == address(0)) {
-
-            // Handle native ETH
             (bool success, ) = claim.swapper.call{value: claim.amount}("");
             require(success, "ETH transfer failed");
         } else {
-            // Handle ERC20
             IERC20(claim.token).safeTransfer(claim.swapper, claim.amount);
         }
 
@@ -128,9 +122,3 @@ contract AegisReserve is IAegisReserve, Ownable {
     // Required to receive ETH from PoolManager.take()
     receive() external payable {}
 }
-
-
-
-
-
-

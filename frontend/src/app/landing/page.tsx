@@ -3,8 +3,12 @@
 import { ShieldCheck, Zap, BarChart3, Lock, ArrowRight, Shield, Activity, Globe } from "lucide-react"
 import Link from "next/link"
 import Swap from "../swap/swap"
+import { useState } from "react"
+import FaucetModal from "../../components/modals/FaucetModal"
 
 export default function LandingPage() {
+  const [isFaucetOpen, setIsFaucetOpen] = useState(false)
+
   return (
     <div className="flex flex-col items-center">
       {/*Swap Area*/}
@@ -37,9 +41,9 @@ export default function LandingPage() {
             LAUNCH APP
             <ArrowRight className="w-5 h-5" />
           </Link>
-          <Link href="/docs" className="px-10 py-5 rounded-[28px] glass-card border border-aegis-border hover:bg-white/5 transition-all font-black text-lg">
-            READ THE DOCS
-          </Link>
+          <button onClick={() => setIsFaucetOpen(true)} className="px-10 py-5 rounded-[28px] glass-card border border-aegis-border hover:bg-white/5 transition-all font-black text-lg">
+            GET TEST TOKENS
+          </button>
         </div>
 
         {/* Floating Stats */}
@@ -110,6 +114,7 @@ export default function LandingPage() {
           </Link>
         </div>
       </section>
+      <FaucetModal isOpen={isFaucetOpen} onClose={() => setIsFaucetOpen(false)} />
     </div>
   )
 }

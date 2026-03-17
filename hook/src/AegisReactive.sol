@@ -27,7 +27,7 @@ contract AegisReactive is IReactive {
     address public immutable hookAddress;
 
     // The system contract for subscriptions (standardized across RMN)
-    ISystemContract public constant service = ISystemContract(0x00000000000000000000000000000000000000FF);
+    ISystemContract public constant service = ISystemContract(0x00000000000000000000000000000000000000ff);
 
     // State tracked in ReactVM
     uint256 public totalClaimsInWindow;
