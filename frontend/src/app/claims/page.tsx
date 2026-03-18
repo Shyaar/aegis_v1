@@ -5,12 +5,13 @@ import { usePrivy } from "@privy-io/react-auth"
 import { formatUnits } from "viem"
 import { useNextClaimId, useClaim, useSettleClaim, useReserveBalance } from "@/lib/hooks/useAegis"
 import { AEGIS_CONTRACTS } from "@/lib/contracts"
+import toast from "react-hot-toast"
 
 // Reads a single claim and renders a row
 function ClaimRow({ claimId, userAddress, onSettle }: {
   claimId: bigint
   userAddress: string
-  onSettle: (id: bigint) => void
+  onSettle: (id: bigint) => Promise<any>
 }) {
   const { data } = useClaim(claimId)
   if (!data) return null
@@ -18,9 +19,20 @@ function ClaimRow({ claimId, userAddress, onSettle }: {
   if (swapper.toLowerCase() !== userAddress.toLowerCase()) return null
 
   const isUSDC = token.toLowerCase() === AEGIS_CONTRACTS.mUSDC.toLowerCase()
-  const formatted = formatUnits(amount, 18)
+  const formatted = formatUnits(amount, isUSDC ? 6 : 18)
   const symbol = isUSDC ? 'mUSDC' : 'mWETH'
   const date = new Date(Number(timestamp) * 1000).toLocaleDateString()
+
+  const handleSettle = async () => {
+    const toastId = toast.loading("Settling claim...")
+    try {
+      await onSettle(claimId)
+      toast.success("Claim settled successfully!", { id: toastId })
+    } catch (e: any) {
+      console.error("Failed to settle claim:", e)
+      toast.error(e?.shortMessage || e?.message || "Failed to settle claim", { id: toastId })
+    }
+  }
 
   return (
     <div className="grid grid-cols-5 p-8 items-center group hover:bg-white/[0.01] transition-all">
@@ -46,7 +58,7 @@ function ClaimRow({ claimId, userAddress, onSettle }: {
           </a>
         ) : (
           <button
-            onClick={() => onSettle(claimId)}
+            onClick={handleSettle}
             className="px-6 py-2 rounded-xl accent-gradient text-black font-black text-[10px] glow-accent transition-all hover:scale-105"
           >
             SETTLE NOW
@@ -123,7 +135,7 @@ export default function ClaimsDashboard() {
               </div>
               <div className="flex justify-between text-[10px] font-bold uppercase">
                 <span className="text-aegis-text-dim">mUSDC Reserve</span>
-                <span className="text-white">{mUSDCReserve ? formatUnits(mUSDCReserve as bigint, 18) : '...'} mUSDC</span>
+                <span className="text-white">{mUSDCReserve ? formatUnits(mUSDCReserve as bigint, 6) : '...'} mUSDC</span>
               </div>
             </div>
             <div className="mt-6 pt-6 border-t border-aegis-border/10">

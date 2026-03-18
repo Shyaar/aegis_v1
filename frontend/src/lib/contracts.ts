@@ -10,12 +10,22 @@ export const unichainSepolia = defineChain({
 })
 
 export const AEGIS_CONTRACTS = {
-  POLICY:  '0xD8a6735b847CAe677A355cb61FFB4932A4eD4B3c' as `0x${string}`,
-  RESERVE: '0x594c9194A98F51747b17ee7a7B0CEBB5A77A6b1d' as `0x${string}`,
-  HOOK:    '0x4F25B3a510158A8C1917087E0679A82D473620C8' as `0x${string}`,
-  ORACLE:  '0x463426aF713Ddafe7Fd142859C0F1Ec8d7888833' as `0x${string}`,
-  mUSDC:   '0x25dfb92B22c873518e28a26B0FEbF681b7f99872' as `0x${string}`,
-  mWETH:   '0xfcAEDD04AcD307405d2E1Ff40fC89948701421a0' as `0x${string}`,
+  POLICY:         '0xD8a6735b847CAe677A355cb61FFB4932A4eD4B3c' as `0x${string}`,
+  RESERVE:        '0x594c9194A98F51747b17ee7a7B0CEBB5A77A6b1d' as `0x${string}`,
+  HOOK:           '0x4F25B3a510158A8C1917087E0679A82D473620C8' as `0x${string}`,
+  ORACLE:         '0x463426aF713Ddafe7Fd142859C0F1Ec8d7888833' as `0x${string}`,
+  mUSDC:          '0x25dfb92B22c873518e28a26B0FEbF681b7f99872' as `0x${string}`,
+  mWETH:          '0xfcAEDD04AcD307405d2E1Ff40fC89948701421a0' as `0x${string}`,
+  POOL_SWAP_TEST: '0x9140a78c1a137c7ff1c151ec8231272af78a99a4' as `0x${string}`,
+} as const
+
+// PoolKey for the Aegis pool (fixed at deployment)
+export const AEGIS_POOL_KEY = {
+  currency0: '0x25dfb92B22c873518e28a26B0FEbF681b7f99872' as `0x${string}`, // mUSDC
+  currency1: '0xfcAEDD04AcD307405d2E1Ff40fC89948701421a0' as `0x${string}`, // mWETH
+  fee: 8388608, // DYNAMIC_FEE_FLAG
+  tickSpacing: 60,
+  hooks: '0x4F25B3a510158A8C1917087E0679A82D473620C8' as `0x${string}`,
 } as const
 
 export const AEGIS_POLICY_ABI = [
@@ -86,4 +96,32 @@ export const MOCK_ERC20_ABI = [
   { type: "function", name: "allowance", inputs: [{ name: "", type: "address" }, { name: "", type: "address" }], outputs: [{ name: "", type: "uint256" }], stateMutability: "view" },
   { type: "function", name: "decimals", inputs: [], outputs: [{ name: "", type: "uint8" }], stateMutability: "view" },
   { type: "function", name: "symbol", inputs: [], outputs: [{ name: "", type: "string" }], stateMutability: "view" },
+] as const
+
+export const POOL_SWAP_TEST_ABI = [
+  {
+    type: "function",
+    name: "swap",
+    inputs: [
+      { name: "key", type: "tuple", components: [
+        { name: "currency0", type: "address" },
+        { name: "currency1", type: "address" },
+        { name: "fee", type: "uint24" },
+        { name: "tickSpacing", type: "int24" },
+        { name: "hooks", type: "address" },
+      ]},
+      { name: "params", type: "tuple", components: [
+        { name: "zeroForOne", type: "bool" },
+        { name: "amountSpecified", type: "int256" },
+        { name: "sqrtPriceLimitX96", type: "uint160" },
+      ]},
+      { name: "testSettings", type: "tuple", components: [
+        { name: "takeClaims", type: "bool" },
+        { name: "settleUsingBurn", type: "bool" },
+      ]},
+      { name: "hookData", type: "bytes" },
+    ],
+    outputs: [{ name: "delta", type: "int256" }],
+    stateMutability: "payable",
+  },
 ] as const

@@ -1,8 +1,15 @@
 import { useLogin, usePrivy } from '@privy-io/react-auth';
+import toast from 'react-hot-toast';
 
 function LoginButton() {
     const { ready, authenticated, user, logout } = usePrivy();
-    const { login } = useLogin();
+    const { login } = useLogin({
+        onComplete: ({ wasAlreadyAuthenticated }) => {
+            if (!wasAlreadyAuthenticated) {
+                toast.success('Wallet connected successfully!', { icon: '🔗' });
+            }
+        }
+    });
 
     const disableLogin = !ready || (ready && authenticated);
 

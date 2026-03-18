@@ -32,7 +32,7 @@ export default function Header() {
     <>
     <nav className="flex items-center justify-between px-8 py-4 border-b border-aegis-border bg-aegis-bg/60 backdrop-blur-xl sticky top-0 z-50">
       <div className="flex items-center gap-10">
-        <Link href="/landing" className="flex items-center gap-2 group cursor-pointer">
+        <Link href="/" className="flex items-center gap-2 group cursor-pointer">
           <Image
             src="/aegis_logo.svg"
             alt="logo"

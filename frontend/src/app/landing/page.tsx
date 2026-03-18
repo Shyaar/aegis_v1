@@ -2,7 +2,7 @@
 
 import { ShieldCheck, Zap, BarChart3, Lock, ArrowRight, Shield, Activity, Globe } from "lucide-react"
 import Link from "next/link"
-import Swap from "../swap/swap"
+import Swap from "../swap/page"
 import { useState } from "react"
 import FaucetModal from "../../components/modals/FaucetModal"
 

@@ -7,6 +7,7 @@ import { usePrivy } from "@privy-io/react-auth"
 import { parseUnits } from "viem"
 import { useMintTokens } from "@/lib/hooks/useAegis"
 import { AEGIS_CONTRACTS } from "@/lib/contracts"
+import toast from "react-hot-toast"
 
 interface FaucetModalProps {
   isOpen: boolean
@@ -22,28 +23,36 @@ export default function FaucetModal({ isOpen, onClose }: FaucetModalProps) {
 
   const handleMint = async () => {
     if (!address) return
-    // mint 10 mWETH and 1000 mUSDC
-    mint(AEGIS_CONTRACTS.mWETH, address, parseUnits("10", 18))
-    mint(AEGIS_CONTRACTS.mUSDC, address, parseUnits("1000", 18))
+    const toastId = toast.loading("Minting test tokens...");
+    try {
+      // mint 10 mWETH and 1000 mUSDC
+      await mint(AEGIS_CONTRACTS.mWETH, address, parseUnits("10", 18))
+      await mint(AEGIS_CONTRACTS.mUSDC, address, parseUnits("1000", 6))
 
-    // prompt wallet to track tokens
-    if (window.ethereum) {
-      for (const [addr, symbol, decimals] of [
-        [AEGIS_CONTRACTS.mWETH, 'mWETH', 18],
-        [AEGIS_CONTRACTS.mUSDC, 'mUSDC', 18],
-      ] as const) {
-        await window.ethereum.request({
-          method: 'wallet_watchAsset',
-          params: { type: 'ERC20', options: { address: addr, symbol, decimals } },
-        }).catch(() => {})
+      // prompt wallet to track tokens
+      if (window.ethereum) {
+        for (const [addr, symbol, decimals] of [
+          [AEGIS_CONTRACTS.mWETH, 'mWETH', 18],
+          [AEGIS_CONTRACTS.mUSDC, 'mUSDC', 6],
+        ] as const) {
+          await window.ethereum.request({
+            method: 'wallet_watchAsset',
+            params: { type: 'ERC20', options: { address: addr, symbol, decimals } },
+          }).catch(() => {})
+        }
       }
+      setDone(true)
+      toast.success("Tokens successfully minted!", { id: toastId })
+    } catch (error: any) {
+      console.error("Failed to mint tokens:", error)
+      toast.error(error?.shortMessage || error?.message || "Failed to mint tokens", { id: toastId })
     }
-    setDone(true)
   }
 
   const copy = (text: string, key: string) => {
     navigator.clipboard.writeText(text)
     setCopiedAddress(key)
+    toast.success(`${key} address copied!`, { icon: '📋' })
     setTimeout(() => setCopiedAddress(null), 2000)
   }
 

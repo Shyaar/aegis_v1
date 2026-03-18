@@ -15,9 +15,10 @@ import {
 } from "lucide-react"
 import { useCoins } from "../coins/fetchCoin"
 import { usePrivy } from "@privy-io/react-auth"
-import { useAegisPremium, useMovingAverageGasPrice, useTokenBalance } from "@/lib/hooks/useAegis"
-import { parseUnits, formatUnits } from "viem"
+import { useAegisPremium, useMovingAverageGasPrice, useTokenBalance, useApproveToken, useProtectedSwap } from "@/lib/hooks/useAegis"
+import { parseUnits, formatUnits, maxUint256 } from "viem"
 import { AEGIS_CONTRACTS } from "@/lib/contracts"
+import toast from "react-hot-toast"
 
 export default function SwapCard({ activeTab = "Swap" }: { activeTab?: string }) {
   // Placeholders for Privy/Blockchain integration
@@ -33,22 +34,28 @@ export default function SwapCard({ activeTab = "Swap" }: { activeTab?: string })
     }
 
 
-  const ETH_PRICE = 2410.50
+  const MWETH_PRICE = 2000 // 1 mWETH = 2000 mUSDC (pool starting price)
   const [isInsured, setIsInsured] = useState(true)
-  const [sellAmount, setSellAmount] = useState("1.0")
-  const [buyAmount, setBuyAmount] = useState(String(ETH_PRICE))
-  const [limitPrice, setLimitPrice] = useState("2,410.50")
-  const [sellSymbol, setSellSymbol] = useState("ETH")
-  const [buySymbol, setBuySymbol] = useState("USDC")
-  const [coverageTier, setCoverageTier] = useState(0) // Default: Basic
+  const [sellAmount, setSellAmount] = useState("0.1")
+  const [buyAmount, setBuyAmount] = useState(String(0.1 * MWETH_PRICE))
+  const [limitPrice, setLimitPrice] = useState("2000.00")
+  const [sellSymbol, setSellSymbol] = useState("mWETH")
+  const [buySymbol, setBuySymbol] = useState("mUSDC")
+  const [coverageTier, setCoverageTier] = useState(1) // Default: Basic (1), not None (0)
 
   const { getCoinBySymbol, loading } = useCoins()
   const sellCoin = getCoinBySymbol(sellSymbol)
   const buyCoin = getCoinBySymbol(buySymbol)
 
+  const sellDecimals = sellSymbol === "mWETH" ? 18 : 6
+
+  // Aegis Contract Integration
+  const { approve } = useApproveToken()
+  const { swap, isPending: isSwapping } = useProtectedSwap()
+
   // Aegis Contract Integration
   const { data: premiumAmountData, isLoading: isPremiumLoading } = useAegisPremium({
-    swapSize: parseUnits(sellAmount || "0", sellCoin?.decimals || 18),
+    swapSize: parseUnits(sellAmount || "0", sellDecimals),
     poolLiquidity: BigInt(1000000) * BigInt(10**18),
     baseFee: 3000,
     volatilitySignal: BigInt(100),
@@ -64,51 +71,56 @@ export default function SwapCard({ activeTab = "Swap" }: { activeTab?: string })
 
   const handleSellAmountChange = (val: string) => {
     setSellAmount(val)
-    if (!val || isNaN(Number(val))) {
-      setBuyAmount("")
-      return
-    }
+    if (!val || isNaN(Number(val))) { setBuyAmount(""); return }
     const amount = Number(val)
-    if (sellSymbol === "ETH") {
-      setBuyAmount((amount * ETH_PRICE).toFixed(2))
-    } else {
-      setBuyAmount((amount / ETH_PRICE).toFixed(6))
-    }
+    setBuyAmount(sellSymbol === "mWETH"
+      ? (amount * MWETH_PRICE).toFixed(2)
+      : (amount / MWETH_PRICE).toFixed(6))
   }
 
   const handleBuyAmountChange = (val: string) => {
     setBuyAmount(val)
-    if (!val || isNaN(Number(val))) {
-      setSellAmount("")
-      return
-    }
+    if (!val || isNaN(Number(val))) { setSellAmount(""); return }
     const amount = Number(val)
-    if (buySymbol === "ETH") {
-      setSellAmount((amount * ETH_PRICE).toFixed(2))
-    } else {
-      setSellAmount((amount / ETH_PRICE).toFixed(6))
-    }
+    setSellAmount(buySymbol === "mWETH"
+      ? (amount * MWETH_PRICE).toFixed(2)
+      : (amount / MWETH_PRICE).toFixed(6))
   }
 
   const toggleTokens = () => {
-    const newSellSymbol = buySymbol
-    const newBuySymbol = sellSymbol
-    setSellSymbol(newSellSymbol)
-    setBuySymbol(newBuySymbol)
-    
-    // Recalculate based on current sell amount in new context
+    setSellSymbol(buySymbol)
+    setBuySymbol(sellSymbol)
     const amount = Number(sellAmount)
     if (!isNaN(amount)) {
-      if (newSellSymbol === "ETH") {
-        setBuyAmount((amount * ETH_PRICE).toFixed(2))
-      } else {
-        setBuyAmount((amount / ETH_PRICE).toFixed(6))
-      }
+      setBuyAmount(buySymbol === "mWETH"
+        ? (amount * MWETH_PRICE).toFixed(2)
+        : (amount / MWETH_PRICE).toFixed(6))
     }
   }
 
   const handleProtectedSwap = async () => {
-    alert("Protected Swap Transaction initiated via Uniswap v4 + Aegis Hook")
+    if (!isConnected) return
+    const toastId = toast.loading("Preparing swap...")
+    try {
+      // mWETH → mUSDC: zeroForOne=false (selling currency1 for currency0)
+      // mUSDC → mWETH: zeroForOne=true  (selling currency0 for currency1)
+      const zeroForOne = sellSymbol === "mUSDC"
+      const sellToken = zeroForOne ? AEGIS_CONTRACTS.mUSDC : AEGIS_CONTRACTS.mWETH
+      const decimals = zeroForOne ? 6 : 18
+      const amount = parseUnits(sellAmount || "0", decimals)
+
+      // approve PoolSwapTest to spend sell token
+      toast.loading("Approving tokens...", { id: toastId })
+      await approve(sellToken, AEGIS_CONTRACTS.POOL_SWAP_TEST, maxUint256)
+      
+      // execute swap through Aegis hook
+      toast.loading("Executing swap...", { id: toastId })
+      await swap(amount, zeroForOne, coverageTier)
+      toast.success("Swap successful!", { id: toastId })
+    } catch (e: any) {
+      console.error("Swap failed:", e?.message ?? e)
+      toast.error(e?.shortMessage || e?.message || "Swap failed", { id: toastId })
+    }
   }
 
   const isBuyOrSell = activeTab === "Buy" || activeTab === "Sell"
@@ -139,7 +151,7 @@ export default function SwapCard({ activeTab = "Swap" }: { activeTab?: string })
               <span className="text-[10px] font-black text-aegis-text-dim uppercase tracking-widest">
                 {activeTab === "Buy" ? "You Pay" : activeTab === "Sell" ? "You Sell" : "You Sell"}
               </span>
-              <span className="text-[10px] font-bold text-aegis-text-dim uppercase">Balance: {sellBalance ? formatUnits(sellBalance as bigint, 18) : '0'} {sellSymbol}</span>
+              <span className="text-[10px] font-bold text-aegis-text-dim uppercase">Balance: {sellBalance ? formatUnits(sellBalance as bigint, sellDecimals) : '0'} {sellSymbol}</span>
 
             </div>
             <div className="flex justify-between items-center gap-4">
@@ -216,7 +228,7 @@ export default function SwapCard({ activeTab = "Swap" }: { activeTab?: string })
           {!isBuyOrSell && (
             <div className={`bg-black/50 rounded-3xl p-6 border border-aegis-border group hover:border-white/10 transition-all ${activeTab === 'Limit' ? '' : 'pt-10'}`}>
               <div className="flex justify-between items-center mb-4">
-                <span className="text-[10px] font-black text-aegis-text-dim uppercase tracking-widest">You Buy</span>
+                <span className="text-[10px] font-black text-aegis-text-dim uppercase tracking-widest">You Get</span>
               </div>
               <div className="flex justify-between items-center gap-4">
                 <input
@@ -243,13 +255,13 @@ export default function SwapCard({ activeTab = "Swap" }: { activeTab?: string })
         {/* Aegis Protection Tooltip/Toggle (Only for Swap for now) */}
         {activeTab === "Swap" && (
           <div
-            className={`p-6 rounded-[28px] border transition-all cursor-pointer relative group ${isInsured
+            className={`p-6 rounded-[28px] border transition-all relative group ${isInsured
               ? "bg-aegis-accent/5 border-aegis-accent/20"
               : "bg-white/[0.02] border-aegis-border hover:bg-white/[0.04]"
               }`}
-            onClick={() => setIsInsured(!isInsured)}
           >
-            <div className="flex items-start justify-between">
+            {/* Header row — clicking this toggles insurance */}
+            <div className="flex items-start justify-between cursor-pointer" onClick={() => setIsInsured(!isInsured)}>
               <div className="flex gap-4">
                 <div className={`mt-1 p-2 rounded-xl ${isInsured ? "bg-aegis-accent/20 text-aegis-accent" : "bg-white/5 text-aegis-text-dim"}`}>
                   {isInsured ? <ShieldCheck className="w-6 h-6" /> : <ShieldAlert className="w-6 h-6" />}
@@ -260,7 +272,7 @@ export default function SwapCard({ activeTab = "Swap" }: { activeTab?: string })
                     <Info className="w-4 h-4 text-aegis-text-dim" />
                   </h3>
                   <p className="text-[10px] font-black text-aegis-text-dim leading-relaxed uppercase tracking-widest mt-1">
-                    {isInsured ? "Slippage 0.05% GUARANTEED" : "UNPROTECTED"}
+                    {isInsured ? "PROTECTED" : "UNPROTECTED"}
                   </p>
                 </div>
               </div>
@@ -270,16 +282,59 @@ export default function SwapCard({ activeTab = "Swap" }: { activeTab?: string })
             </div>
 
             {isInsured && (
-              <div className="mt-5 pt-5 border-t border-aegis-accent/10 space-y-3 animate-in fade-in slide-in-from-top-2 duration-500">
-                <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-widest">
-                  <span className="text-aegis-text-dim">Insurance Premium</span>
-                  <span className="text-aegis-accent underline decoration-aegis-accent/30 underline-offset-4 cursor-pointer">
-                    {premiumAmount ? `${formatUnits(premiumAmount, sellCoin?.decimals || 18)} ${sellSymbol}` : "Calculating..."}
-                  </span>
+              <div className="mt-5 pt-5 border-t border-aegis-accent/10 space-y-4 animate-in fade-in slide-in-from-top-2 duration-500">
+                {/* Tier selector */}
+                <div className="grid grid-cols-3 gap-2">
+                  {([
+                    { label: "BASIC",    value: 1, trigger: "1%",   bps: "5bps"  },
+                    { label: "STANDARD", value: 2, trigger: "0.5%", bps: "10bps" },
+                    { label: "PREMIUM",  value: 3, trigger: "0.2%", bps: "20bps" },
+                  ] as const).map((tier) => (
+                    <button
+                      key={tier.value}
+                      onClick={() => setCoverageTier(tier.value)}
+                      className={`flex flex-col items-center py-3 px-2 rounded-2xl border transition-all ${
+                        coverageTier === tier.value
+                          ? "bg-aegis-accent/20 border-aegis-accent text-aegis-accent"
+                          : "bg-white/[0.03] border-aegis-border text-aegis-text-dim hover:border-white/20"
+                      }`}
+                    >
+                      <span className="text-[9px] font-black uppercase tracking-widest">{tier.label}</span>
+                      <span className="text-[8px] font-bold mt-1 opacity-70">triggers &gt; {tier.trigger}</span>
+                      <span className="text-[8px] font-bold opacity-50">{tier.bps} premium</span>
+                    </button>
+                  ))}
                 </div>
-                <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-widest">
-                  <span className="text-aegis-text-dim">Payout Trigger</span>
-                  <span className="text-green-400">-{">"} 0.5% Execution Delta</span>
+
+                {/* Premium + payout info */}
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-widest">
+                    <span className="text-aegis-text-dim">Insurance Premium</span>
+                    <span className="text-aegis-accent">
+                      {isPremiumLoading
+                        ? "..."
+                        : premiumAmountData !== undefined
+                          ? `${formatUnits(premiumAmountData, sellDecimals)} ${sellSymbol}`
+                          : "—"}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-widest">
+                    <span className="text-aegis-text-dim">Total You Pay</span>
+                    <span className="text-white">
+                      {premiumAmountData !== undefined
+                        ? `${formatUnits(
+                            parseUnits(sellAmount || "0", sellDecimals) + premiumAmountData,
+                            sellDecimals
+                          )} ${sellSymbol}`
+                        : "—"}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-widest">
+                    <span className="text-aegis-text-dim">Payout Trigger</span>
+                    <span className="text-green-400">
+                      {coverageTier === 1 ? "> 1%" : coverageTier === 2 ? "> 0.5%" : "> 0.2%"} slippage
+                    </span>
+                  </div>
                 </div>
               </div>
             )}
@@ -290,9 +345,9 @@ export default function SwapCard({ activeTab = "Swap" }: { activeTab?: string })
         <button
           onClick={handleProtectedSwap}
           disabled={!isConnected}
-          className={`w-full py-5 rounded-[32px] accent-gradient text-black font-black text-lg glow-accent hover:opacity-90 active:scale-[0.99] transition-all flex items-center justify-center gap-3 ${!isConnected ? "opacity-30 cursor-not-allowed grayscale" : ""}`}
+          className={`w-full py-5 rounded-[32px] accent-gradient text-black font-black text-lg glow-accent hover:opacity-90 active:scale-[0.99] transition-all flex items-center justify-center gap-3 ${(!isConnected || isSwapping) ? "opacity-30 cursor-not-allowed grayscale" : ""}`}
         >
-          {!isConnected ? "CONNECT WALLET TO SWAP" : (
+          {!isConnected ? "CONNECT WALLET TO SWAP" : isSwapping ? "SWAPPING..." : (
             <>
               {activeTab === "Swap" && isInsured && <Zap className="w-5 h-5 fill-current" />}
               {activeTab === "Swap" ? (isInsured ? "PROTECTED SWAP" : "SWAP WITHOUT COVERAGE") :
