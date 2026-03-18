@@ -41,7 +41,7 @@ contract AegisReactive is IReactive {
         address _policy,
         uint256 _chainId,
         address _hook
-    ) {
+    ) payable {
         policyAddress = _policy;
         destinationChainId = _chainId;
         hookAddress = _hook;
@@ -105,27 +105,22 @@ contract AegisReactive is IReactive {
 
     function _raisePremium() internal {
         isPremiumRaised = true;
-        
-        // Trigger callback to AegisPolicy.updateBasePremium(50)
-        // 50 BPS = 0.5% extra premium
         emit Callback(
             destinationChainId,
             policyAddress,
             CALLBACK_GAS_LIMIT,
-            abi.encodeWithSignature("updateBasePremium(uint16)", 50)
+            abi.encodeWithSignature("updateBasePremium(address,uint16)", address(0), uint16(50))
         );
     }
 
     function _resetPremium() internal {
         isPremiumRaised = false;
         totalClaimsInWindow = 0;
-        
-        // Trigger callback to AegisPolicy.clearBasePremium()
         emit Callback(
             destinationChainId,
             policyAddress,
             CALLBACK_GAS_LIMIT,
-            abi.encodeWithSignature("clearBasePremium()")
+            abi.encodeWithSignature("clearBasePremium(address)", address(0))
         );
     }
 }

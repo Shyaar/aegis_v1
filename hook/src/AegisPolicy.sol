@@ -18,6 +18,8 @@ contract AegisPolicy is IAegisPolicy, Ownable {
 
     // The authorized Reactive contract (on destination chain)
     address public reactiveContract;
+    // The Callback Proxy address (set on deployment, authorizes reactive callbacks)
+    address public callbackProxy;
 
     constructor(address initialOwner) Ownable(initialOwner) {}
 
@@ -25,22 +27,31 @@ contract AegisPolicy is IAegisPolicy, Ownable {
         reactiveContract = _reactiveContract;
     }
 
+    function setCallbackProxy(address _callbackProxy) external onlyOwner {
+        callbackProxy = _callbackProxy;
+    }
+
     modifier onlyAuthorized() {
-        require(msg.sender == owner() || msg.sender == reactiveContract, "Not authorized");
+        require(
+            msg.sender == owner() ||
+            msg.sender == reactiveContract ||
+            msg.sender == callbackProxy,
+            "Not authorized"
+        );
         _;
     }
 
     /**
      * @inheritdoc IAegisPolicy
      */
-    function updateBasePremium(uint16 additionalBps) external onlyAuthorized {
+    function updateBasePremium(address /* rvm */, uint16 additionalBps) external onlyAuthorized {
         extraBps = additionalBps;
     }
 
     /**
      * @inheritdoc IAegisPolicy
      */
-    function clearBasePremium() external onlyAuthorized {
+    function clearBasePremium(address /* rvm */) external onlyAuthorized {
         extraBps = 0;
     }
 

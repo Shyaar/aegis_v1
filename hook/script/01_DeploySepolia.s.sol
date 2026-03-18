@@ -82,13 +82,13 @@ contract DeploySepolia is Script {
             CREATE2_FACTORY,
             flags,
             type(AegisHook).creationCode,
-            abi.encode(address(POOL_MANAGER), address(reserve), address(policy))
+            abi.encode(address(POOL_MANAGER), address(policy), address(reserve), address(oracle))
         );
 
         AegisHook hook = new AegisHook{salt: salt}(
             IPoolManager(POOL_MANAGER),
-            address(reserve),
             address(policy),
+            address(reserve),
             address(oracle)
         );
 

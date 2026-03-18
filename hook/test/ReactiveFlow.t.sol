@@ -82,7 +82,7 @@ contract ReactiveFlowTest is Test {
 
         // 3. Manually execute the callback (Simulating Reactive Relayer)
         vm.prank(address(reactive));
-        policy.updateBasePremium(50);
+        policy.updateBasePremium(address(reactive), 50);
 
         // Verify premium is raised
         assertEq(policy.extraBps(), 50);
@@ -100,7 +100,7 @@ contract ReactiveFlowTest is Test {
             chainId,
             address(policy),
             1000000,
-            abi.encodeWithSignature("clearBasePremium()")
+            abi.encodeWithSignature("clearBasePremium(address)", address(0))
         );
         _simulateQuietReact(152);
 
@@ -109,7 +109,7 @@ contract ReactiveFlowTest is Test {
 
         // 5. Manually execute the reset callback
         vm.prank(address(reactive));
-        policy.clearBasePremium();
+        policy.clearBasePremium(address(reactive));
 
         assertEq(policy.extraBps(), 0);
         assertEq(policy.calculatePremium(params), initialPremium);

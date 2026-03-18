@@ -46,11 +46,13 @@ interface IAegisPolicy {
 
     /**
      * @notice Updates the extra premium BPS (used by Reactive Network).
+     * @param rvm ReactVM ID injected by Reactive Network (first arg always overwritten).
      */
-    function updateBasePremium(uint16 additionalBps) external;
+    function updateBasePremium(address rvm, uint16 additionalBps) external;
 
     /**
      * @notice Resets the extra premium BPS to zero.
+     * @param rvm ReactVM ID injected by Reactive Network (first arg always overwritten).
      */
-    function clearBasePremium() external;
+    function clearBasePremium(address rvm) external;
 }
