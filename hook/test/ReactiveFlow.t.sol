@@ -73,7 +73,7 @@ contract ReactiveFlowTest is Test {
             chainId,
             address(policy),
             1000000,
-            abi.encodeWithSignature("updateBasePremium(uint16)", 50)
+            abi.encodeWithSignature("updateBasePremium(address,uint16)", address(0), uint16(50))
         );
         _simulateClaim(3 ether, 101);
 
