@@ -25,8 +25,8 @@ import {console} from "forge-std/console.sol";
 contract DeploySepolia is Script {
     using CurrencyLibrary for Currency;
 
-    // Sepolia PoolManager address
-    address constant POOL_MANAGER = 0x8C4BcBE6b9eF47855f97E675296FA3F6fafa5F1A;
+    // Unichain Sepolia PoolManager
+    address constant POOL_MANAGER = 0x00B036B58a818B1BC34d502D3fE730Db729e62AC;
 
     function run() external {
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
@@ -62,7 +62,7 @@ contract DeploySepolia is Script {
         // -------------------------------------------------------
         // STEP 3 — Deploy core Aegis contracts
         // -------------------------------------------------------
-        AegisPolicy policy = new AegisPolicy(deployerAddr);
+        AegisPolicy policy = new AegisPolicy(deployerAddr, 0x9299472A6399Fd1027ebF067571Eb3e3D7837FC4); // Unichain Sepolia Callback Proxy
         AegisOracle oracle = new AegisOracle();
         AegisReserve reserve = new AegisReserve(deployerAddr);
 
@@ -75,7 +75,8 @@ contract DeploySepolia is Script {
         uint160 flags = uint160(
             Hooks.BEFORE_INITIALIZE_FLAG |
                 Hooks.BEFORE_SWAP_FLAG |
-                Hooks.AFTER_SWAP_FLAG
+                Hooks.AFTER_SWAP_FLAG |
+                Hooks.BEFORE_SWAP_RETURNS_DELTA_FLAG
         );
 
         (address hookAddress, bytes32 salt) = HookMiner.find(

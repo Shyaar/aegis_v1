@@ -1,82 +1,63 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.26;
 
-import {IReactive, ISystemContract, LogRecord} from "./interfaces/IReactive.sol";
+import {IReactive, LogRecord} from "./interfaces/IReactive.sol";
+import {AbstractReactive} from "./reactive/AbstractReactive.sol";
 
 /**
  * @title AegisReactive
  * @notice Reactive Contract that monitors claim activity and adjusts AegisPolicy premiums.
- * @dev This contract runs on the Reactive Network and triggers callbacks to the destination chain.
- * Inspired by the Reactive Network demos.
+ * @dev Runs on the Reactive Network (RNK). Extends AbstractReactive for proper vm detection,
+ *      vmOnly/rnOnly modifiers, and system contract integration.
+ *
+ *      Deployment flow:
+ *        1. Deploy with ETH value (e.g. 0.01 ether)
+ *        2. Call coverDebt() to pay subscription debt to system contract
+ *        3. Call subscribe() to register the event subscription
  */
-contract AegisReactive is IReactive {
-    uint256 public constant REACTIVE_IGNORE = 0xa65f96489a2442436f6d00000000000000000000000000000000000000000000;
+contract AegisReactive is AbstractReactive {
     uint64 private constant CALLBACK_GAS_LIMIT = 1000000;
 
-    // Event Topic for ClaimPaid(address,uint256)
     // keccak256("ClaimPaid(address,uint256)")
-    uint256 public constant CLAIM_PAID_TOPIC_0 = 0x226d5b41cfec7a0db2f4ccda923f0125d13c8d5bf194e7d3beced0ec21bc70c9;
+    uint256 public constant CLAIM_PAID_TOPIC_0 = 0xf42cf8c29487b42c009006cba2a2a0ca0388229f3183e6e957e0a0b163585cb4;
 
-    // Thresholds for triggering adjustments
-    uint256 public constant RESET_WINDOW = 50; // blocks
-    uint256 public constant CLAIM_THRESHOLD = 5 ether; // total compensation threshold
+    uint256 public constant RESET_WINDOW = 50;
+    uint256 public constant CLAIM_THRESHOLD = 5 ether;
 
-    // Immutable configuration
     address public immutable policyAddress;
     uint256 public immutable destinationChainId;
     address public immutable hookAddress;
 
-    // The system contract for subscriptions (standardized across RMN)
-    ISystemContract public constant service = ISystemContract(0x00000000000000000000000000000000000000ff);
-
-    // State tracked in ReactVM
     uint256 public totalClaimsInWindow;
     uint256 public lastClaimBlock;
     bool public isPremiumRaised;
-    
-    // Detect if we are in ReactVM
-    bool public immutable vm;
 
     constructor(
         address _policy,
         uint256 _chainId,
         address _hook
-    ) payable {
+    ) payable AbstractReactive() {
         policyAddress = _policy;
         destinationChainId = _chainId;
         hookAddress = _hook;
-
-        // Check for VM by calling system contract (standard RMN pattern)
-        uint256 codeSize;
-        address systemAddr = address(service);
-        assembly {
-            codeSize := extcodesize(systemAddr)
-        }
-        vm = (codeSize > 0);
-
-        if (!vm) {
-            // Subscribe to ClaimPaid events on the destination chain
-            service.subscribe(
-                destinationChainId,
-                hookAddress,
-                CLAIM_PAID_TOPIC_0,
-                REACTIVE_IGNORE,
-                REACTIVE_IGNORE,
-                REACTIVE_IGNORE
-            );
-        }
-    }
-    
-    modifier vmOnly() {
-        require(vm, "ReactVM only");
-        _;
     }
 
-    /**
-     * @inheritdoc IReactive
-     */
+    /// @notice Step 2: pay subscription debt, then step 3: register subscription.
+    function subscribe() external rnOnly {
+        uint256 debt = vendor.debt(address(this));
+        _pay(payable(address(vendor)), debt);
+        service.subscribe(
+            destinationChainId,
+            hookAddress,
+            CLAIM_PAID_TOPIC_0,
+            REACTIVE_IGNORE,
+            REACTIVE_IGNORE,
+            REACTIVE_IGNORE
+        );
+    }
+
+    /// @inheritdoc IReactive
     function react(LogRecord calldata record) external override vmOnly {
-        // Only listen to ClaimPaid events from our hook on the correct chain
         if (
             record.chain_id == destinationChainId &&
             record._contract == hookAddress &&
@@ -84,17 +65,14 @@ contract AegisReactive is IReactive {
         ) {
             _handleClaimPaid(record);
         }
-        
-        // Check for "quiet" period to reset premiums
+
         if (isPremiumRaised && record.block_number > lastClaimBlock + RESET_WINDOW) {
             _resetPremium();
         }
     }
 
     function _handleClaimPaid(LogRecord calldata record) internal {
-        // Decode compensation amount from data
         uint256 compensation = abi.decode(record.data, (uint256));
-        
         totalClaimsInWindow += compensation;
         lastClaimBlock = record.block_number;
 

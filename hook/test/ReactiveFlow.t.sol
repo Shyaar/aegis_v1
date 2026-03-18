@@ -10,6 +10,7 @@ import {IReactive, LogRecord} from "../src/interfaces/IReactive.sol";
 contract MockSystemContract {
     function subscribe(uint256, address, uint256, uint256, uint256, uint256) external {}
     function unsubscribe(uint256, address, uint256, uint256, uint256, uint256) external {}
+    function debt(address) external pure returns (uint256) { return 0; }
 }
 
 contract ReactiveFlowTest is Test {
@@ -20,7 +21,8 @@ contract ReactiveFlowTest is Test {
     address public owner = address(0x1);
     address public hook = address(0x3);
     uint256 public chainId = 1;
-    address public constant SYSTEM_CONTRACT_ADDR = 0x00000000000000000000000000000000000000ff;
+    // AbstractReactive uses 0x0000000000000000000000000000000000fffFfF
+    address public constant SYSTEM_CONTRACT_ADDR = 0x0000000000000000000000000000000000fffFfF;
 
     event Callback(
         uint256 chain_id,
@@ -30,18 +32,17 @@ contract ReactiveFlowTest is Test {
     );
 
     function setUp() public {
-        vm.prank(owner);
-        policy = new AegisPolicy(owner);
+        // Deploy policy with address(this) as callbackSender so the test can call updateBasePremium/clearBasePremium
+        policy = new AegisPolicy(owner, address(this));
 
-        // Mock the system contract at 0xFF so AegisReactive detects 'vm = true'
+        // Do NOT etch the system contract before deploying reactive — we want vm = true (no code at 0xfffFfF)
+        // so that react() passes the vmOnly modifier and subscribe() is skipped in the constructor.
+        reactive = new AegisReactive(address(policy), chainId, hook);
+
+        // Etch mock AFTER deployment so coverDebt/pay calls don't revert if ever triggered
         mockSystem = new MockSystemContract();
         vm.etch(SYSTEM_CONTRACT_ADDR, address(mockSystem).code);
 
-        reactive = new AegisReactive(address(policy), chainId, hook);
-
-        vm.prank(owner);
-        policy.setReactiveContract(address(reactive));
-        
         vm.label(SYSTEM_CONTRACT_ADDR, "SystemContract");
         vm.label(address(policy), "AegisPolicy");
         vm.label(address(reactive), "AegisReactive");
@@ -80,8 +81,7 @@ contract ReactiveFlowTest is Test {
         assertTrue(reactive.isPremiumRaised());
         assertEq(reactive.totalClaimsInWindow(), 6 ether);
 
-        // 3. Manually execute the callback (Simulating Reactive Relayer)
-        vm.prank(address(reactive));
+        // 3. Manually execute the callback (Simulating Reactive Relayer via authorized callbackSender)
         policy.updateBasePremium(address(reactive), 50);
 
         // Verify premium is raised
@@ -108,7 +108,6 @@ contract ReactiveFlowTest is Test {
         assertEq(reactive.totalClaimsInWindow(), 0);
 
         // 5. Manually execute the reset callback
-        vm.prank(address(reactive));
         policy.clearBasePremium(address(reactive));
 
         assertEq(policy.extraBps(), 0);

@@ -64,7 +64,7 @@ contract AegisHookFlowTest is Test, Deployers {
         // Use Deployers helper to get tokens
         (currency0, currency1) = deployCurrencyPair();
 
-        policy = new AegisPolicy(address(this));
+        policy = new AegisPolicy(address(this), address(this));
         reserve = new AegisReserve(address(this));
         oracle = new AegisOracle();
         

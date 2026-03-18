@@ -3,55 +3,37 @@ pragma solidity ^0.8.26;
 
 import {IAegisPolicy} from "./interfaces/IAegisPolicy.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {AbstractCallback} from "./reactive/AbstractPayer.sol";
 
 /**
  * @title AegisPolicy
  * @author Aegis Team
  * @notice Logic for insurance premiums and dynamic fee scaling.
+ * @dev Extends AbstractCallback so that updateBasePremium/clearBasePremium are
+ *      restricted to the Callback Proxy via authorizedSenderOnly.
+ *      Pass the Reactive Network Callback Proxy address as _callbackSender on deployment.
  */
-contract AegisPolicy is IAegisPolicy, Ownable {
-    // Basis Points (10000 = 100%)
+contract AegisPolicy is IAegisPolicy, Ownable, AbstractCallback {
     uint256 public constant BPS = 10000;
 
-    // Extra premium BPS controlled by Reactive Network
     uint16 public extraBps;
 
-    // The authorized Reactive contract (on destination chain)
-    address public reactiveContract;
-    // The Callback Proxy address (set on deployment, authorizes reactive callbacks)
-    address public callbackProxy;
-
-    constructor(address initialOwner) Ownable(initialOwner) {}
-
-    function setReactiveContract(address _reactiveContract) external onlyOwner {
-        reactiveContract = _reactiveContract;
-    }
-
-    function setCallbackProxy(address _callbackProxy) external onlyOwner {
-        callbackProxy = _callbackProxy;
-    }
-
-    modifier onlyAuthorized() {
-        require(
-            msg.sender == owner() ||
-            msg.sender == reactiveContract ||
-            msg.sender == callbackProxy,
-            "Not authorized"
-        );
-        _;
-    }
+    constructor(address initialOwner, address _callbackSender)
+        Ownable(initialOwner)
+        AbstractCallback(_callbackSender)
+    {}
 
     /**
      * @inheritdoc IAegisPolicy
      */
-    function updateBasePremium(address /* rvm */, uint16 additionalBps) external onlyAuthorized {
+    function updateBasePremium(address /* rvm */, uint16 additionalBps) external authorizedSenderOnly {
         extraBps = additionalBps;
     }
 
     /**
      * @inheritdoc IAegisPolicy
      */
-    function clearBasePremium(address /* rvm */) external onlyAuthorized {
+    function clearBasePremium(address /* rvm */) external authorizedSenderOnly {
         extraBps = 0;
     }
 
@@ -67,25 +49,21 @@ contract AegisPolicy is IAegisPolicy, Ownable {
 
         uint256 basePremiumBps;
         if (params.tier == CoverageTier.Basic) {
-            basePremiumBps = 5; // 0.05%
+            basePremiumBps = 5;
         } else if (params.tier == CoverageTier.Standard) {
-            basePremiumBps = 10; // 0.1%
+            basePremiumBps = 10;
         } else if (params.tier == CoverageTier.Premium) {
-            basePremiumBps = 20; // 0.2%
+            basePremiumBps = 20;
         } else {
             revert InvalidTier();
         }
 
-        // Add extra premium from Reactive Network
         basePremiumBps += extraBps;
 
-        // Add volatility surcharge
-        // If volatility is > 1000 bps (10%), add 50% more premium
         if (params.volatilitySignal > 1000) {
             basePremiumBps += basePremiumBps / 2;
         }
 
-        // premium = (size * bps) / 10000
         return (params.swapSize * basePremiumBps) / BPS;
     }
 
@@ -103,22 +81,19 @@ contract AegisPolicy is IAegisPolicy, Ownable {
         uint256 thresholdBps;
 
         if (tier == CoverageTier.Basic) {
-            thresholdBps = 100; // 1%
+            thresholdBps = 100;
         } else if (tier == CoverageTier.Standard) {
-            thresholdBps = 50; // 0.5%
+            thresholdBps = 50;
         } else if (tier == CoverageTier.Premium) {
-            thresholdBps = 20; // 0.2%
+            thresholdBps = 20;
         } else {
             revert InvalidTier();
         }
 
         uint256 thresholdAmount = (expectedOut * thresholdBps) / BPS;
-
         if (deviation > thresholdAmount) {
-            // Pay the full deviation once threshold is breached
             return deviation;
         }
-
         return 0;
     }
 
@@ -136,23 +111,19 @@ contract AegisPolicy is IAegisPolicy, Ownable {
         uint256 thresholdBps;
 
         if (tier == CoverageTier.Basic) {
-            thresholdBps = 100; // 1%
+            thresholdBps = 100;
         } else if (tier == CoverageTier.Standard) {
-            thresholdBps = 50; // 0.5%
+            thresholdBps = 50;
         } else if (tier == CoverageTier.Premium) {
-            thresholdBps = 20; // 0.2%
+            thresholdBps = 20;
         } else {
             revert InvalidTier();
         }
 
-        // The threshold is based on the expected input amount
         uint256 thresholdAmount = (expectedIn * thresholdBps) / BPS;
-
         if (deviation > thresholdAmount) {
-            // Pay the full deviation once threshold is breached
             return deviation;
         }
-
         return 0;
     }
 }

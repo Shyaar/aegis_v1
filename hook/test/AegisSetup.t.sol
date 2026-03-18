@@ -43,7 +43,7 @@ contract AegisSetupTest is Test, Deployers {
         (currency0, currency1) = deployCurrencyPair();
 
         // 1. Deploy Aegis Component Contracts
-        policy = new AegisPolicy(address(this));
+        policy = new AegisPolicy(address(this), address(this));
         reserve = new AegisReserve(address(this));
         oracle = new AegisOracle();
         

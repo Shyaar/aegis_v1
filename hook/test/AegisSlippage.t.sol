@@ -69,7 +69,7 @@ contract AegisSlippageTest is Test, Deployers {
 
         (currency0, currency1) = deployCurrencyPair();
 
-        policy = new AegisPolicy(address(this));
+        policy = new AegisPolicy(address(this), address(this));
         reserve = new AegisReserve(address(this));
         oracle = new AegisOracle();
 
@@ -227,27 +227,20 @@ contract AegisSlippageTest is Test, Deployers {
     }
 
     // =========================================================================
-    // Gap 5: callbackProxy access control on AegisPolicy
+    // Gap 5: authorizedSenderOnly access control on AegisPolicy (AbstractCallback)
     // =========================================================================
 
     function test_UpdateBasePremium_OnlyAuthorized() public {
         address stranger = address(0xdead);
 
-        // Stranger cannot call
+        // Stranger cannot call — only the callbackSender (address(this) in setUp) is authorized
         vm.prank(stranger);
-        vm.expectRevert("Not authorized");
+        vm.expectRevert("Authorized sender only");
         policy.updateBasePremium(stranger, 50);
 
-        // Owner can call
+        // callbackSender (address(this)) can call
         policy.updateBasePremium(address(this), 50);
         assertEq(policy.extraBps(), 50);
-
-        // callbackProxy can call after being set
-        address proxy = address(0xbeef);
-        policy.setCallbackProxy(proxy);
-        vm.prank(proxy);
-        policy.updateBasePremium(proxy, 100);
-        assertEq(policy.extraBps(), 100);
     }
 
     function test_ClearBasePremium_OnlyAuthorized() public {
@@ -255,14 +248,11 @@ contract AegisSlippageTest is Test, Deployers {
 
         address stranger = address(0xdead);
         vm.prank(stranger);
-        vm.expectRevert("Not authorized");
+        vm.expectRevert("Authorized sender only");
         policy.clearBasePremium(stranger);
 
-        // reactiveContract can call after being set
-        address reactive = address(0xcafe);
-        policy.setReactiveContract(reactive);
-        vm.prank(reactive);
-        policy.clearBasePremium(reactive);
+        // callbackSender (address(this)) can call
+        policy.clearBasePremium(address(this));
         assertEq(policy.extraBps(), 0);
     }
 

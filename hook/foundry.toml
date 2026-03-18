@@ -7,3 +7,9 @@ via_ir = true
 optimizer = true
 optimizer_runs = 200
 # See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options
+
+[rpc_endpoints]
+unichain = "https://sepolia.unichain.org"
+
+[etherscan]
+unichain = { key = "NBT64X6Q6Q74M8WPJKTPKSYQPSP1DDWPYW", url = "https://api-sepolia.uniscan.xyz/api" }

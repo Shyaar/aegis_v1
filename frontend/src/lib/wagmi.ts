@@ -1,11 +1,10 @@
-import { http } from 'viem';
-import { sepolia, mainnet } from 'viem/chains';
-import { createConfig } from '@privy-io/wagmi';
+import { http } from 'viem'
+import { createConfig } from '@privy-io/wagmi'
+import { unichainSepolia } from '@/lib/contracts'
 
 export const config = createConfig({
-  chains: [sepolia, mainnet],
+  chains: [unichainSepolia],
   transports: {
-    [sepolia.id]: http(),
-    [mainnet.id]: http(),
+    [unichainSepolia.id]: http('https://sepolia.unichain.org'),
   },
-});
+})

@@ -28,11 +28,11 @@ import {console} from "forge-std/console.sol";
  *   AegisPolicy.setReactiveContract(<deployed AegisReactive addr>)
  */
 contract DeployReactive is Script {
-    // Sepolia chain ID — the origin/destination chain we're monitoring
-    uint256 constant SEPOLIA_CHAIN_ID = 11155111;
+    // Unichain Sepolia chain ID — the origin/destination chain we're monitoring
+    uint256 constant SEPOLIA_CHAIN_ID = 1301;
 
     function run() external {
-        uint256 deployerKey = vm.envUint("REACTIVE_PRIVATE_KEY");
+        uint256 deployerKey = vm.envUint("PRIVATE_KEY");
         address policyAddress = vm.envAddress("POLICY_ADDRESS");
         address hookAddress = vm.envAddress("HOOK_ADDRESS");
 
@@ -48,6 +48,9 @@ contract DeployReactive is Script {
             SEPOLIA_CHAIN_ID,
             hookAddress
         );
+
+        // Pay debt and register subscription with the system contract
+        reactive.subscribe();
 
         vm.stopBroadcast();
 

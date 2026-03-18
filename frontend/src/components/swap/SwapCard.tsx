@@ -15,8 +15,9 @@ import {
 } from "lucide-react"
 import { useCoins } from "../coins/fetchCoin"
 import { usePrivy } from "@privy-io/react-auth"
-import { useAegisPremium } from "@/lib/hooks/useAegis"
+import { useAegisPremium, useMovingAverageGasPrice, useTokenBalance } from "@/lib/hooks/useAegis"
 import { parseUnits, formatUnits } from "viem"
+import { AEGIS_CONTRACTS } from "@/lib/contracts"
 
 export default function SwapCard({ activeTab = "Swap" }: { activeTab?: string }) {
   // Placeholders for Privy/Blockchain integration
@@ -48,14 +49,18 @@ export default function SwapCard({ activeTab = "Swap" }: { activeTab?: string })
   // Aegis Contract Integration
   const { data: premiumAmountData, isLoading: isPremiumLoading } = useAegisPremium({
     swapSize: parseUnits(sellAmount || "0", sellCoin?.decimals || 18),
-    poolLiquidity: BigInt(1000000) * BigInt(10**18), // Mock liquidity
-    baseFee: 3000, // 30 bps
-    volatilitySignal: BigInt(100), // Mock signal
+    poolLiquidity: BigInt(1000000) * BigInt(10**18),
+    baseFee: 3000,
+    volatilitySignal: BigInt(100),
     tier: coverageTier,
   });
 
   const premiumAmount = premiumAmountData;
-  const movingAverageGas = null;
+  const { data: movingAverageGas } = useMovingAverageGasPrice();
+  const { data: sellBalance } = useTokenBalance(
+    sellSymbol === "mWETH" ? AEGIS_CONTRACTS.mWETH : AEGIS_CONTRACTS.mUSDC,
+    address as `0x${string}` | undefined
+  );
 
   const handleSellAmountChange = (val: string) => {
     setSellAmount(val)
@@ -134,7 +139,7 @@ export default function SwapCard({ activeTab = "Swap" }: { activeTab?: string })
               <span className="text-[10px] font-black text-aegis-text-dim uppercase tracking-widest">
                 {activeTab === "Buy" ? "You Pay" : activeTab === "Sell" ? "You Sell" : "You Sell"}
               </span>
-              <span className="text-[10px] font-bold text-aegis-text-dim uppercase">Balance: 2.14 {sellSymbol}</span>
+              <span className="text-[10px] font-bold text-aegis-text-dim uppercase">Balance: {sellBalance ? formatUnits(sellBalance as bigint, 18) : '0'} {sellSymbol}</span>
 
             </div>
             <div className="flex justify-between items-center gap-4">
