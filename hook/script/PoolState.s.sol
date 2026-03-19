@@ -17,11 +17,11 @@ contract PoolState is Script {
 
     function run() external view {
         PoolKey memory key = PoolKey({
-            currency0: Currency.wrap(0x665D2ce2a1c0De6D1a633f7E64C2383CB624662A),
-            currency1: Currency.wrap(0xad86B4C5048Fdc15550543C45cdD70f70D0A63EF),
+            currency0: Currency.wrap(0x28fc8245697Fb0a2B4B8e8836E7C02A76C823126), // mUSDC (lower addr)
+            currency1: Currency.wrap(0x46527B7dF29d1B858F76e17BefA8dFe87606F182), // mWETH
             fee: LPFeeLibrary.DYNAMIC_FEE_FLAG,
             tickSpacing: 60,
-            hooks: IHooks(0x2042d29d9FC03a225c6a1d56b5a138C9e61960C8)
+            hooks: IHooks(0xB7056bFF4178b8CfaDEBF4Ab9BAa9901524Ce0c8)
         });
         PoolId id = key.toId();
         console.log("PoolId:"); console.logBytes32(PoolId.unwrap(id));

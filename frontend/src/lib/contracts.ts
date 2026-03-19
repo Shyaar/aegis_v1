@@ -10,23 +10,23 @@ export const unichainSepolia = defineChain({
 })
 
 export const AEGIS_CONTRACTS = {
-  POLICY:         '0x57f2ad328d4f9a81219cd429395bea62595035e3' as `0x${string}`,
-  RESERVE:        '0x6662da476699739d3dd9e2b3d11b82017a013a02' as `0x${string}`,
-  HOOK:           '0x17aCa8a97eaf284762ee139f743E565cDF4cE0c8' as `0x${string}`,
-  ORACLE:         '0xe25aded1d5c4b77a9da21a6440732d859883a440' as `0x${string}`,
-  mUSDC:          '0xec8856122e88c4e10b2ba448e63933d5a41028cc' as `0x${string}`,
-  mWETH:          '0xcf841f89753158557091e0c28781f09e27aa3b55' as `0x${string}`,
+  POLICY:         '0x30553a71dAe0925F6Ad577ffcdD3d8b5bA1278FD' as `0x${string}`,
+  RESERVE:        '0x0d672Bd97e0Ee0B37544013E63db0F287A76f8E6' as `0x${string}`,
+  HOOK:           '0xB7056bFF4178b8CfaDEBF4Ab9BAa9901524Ce0c8' as `0x${string}`,
+  ORACLE:         '0xd99807e1b326449fEd85bBA4F1092399B648c6C2' as `0x${string}`,
+  mUSDC:          '0x28fc8245697Fb0a2B4B8e8836E7C02A76C823126' as `0x${string}`,
+  mWETH:          '0x46527B7dF29d1B858F76e17BefA8dFe87606F182' as `0x${string}`,
   POOL_SWAP_TEST: '0x9140a78c1A137c7fF1c151EC8231272aF78a99A4' as `0x${string}`,
 } as const
 
 // PoolKey for the Aegis pool (fixed at deployment)
-// NOTE: mWETH < mUSDC by address, so currency0=mWETH, currency1=mUSDC
+// NOTE: mUSDC < mWETH by address, so currency0=mUSDC, currency1=mWETH
 export const AEGIS_POOL_KEY = {
-  currency0: '0xcf841f89753158557091e0c28781f09e27aa3b55' as `0x${string}`, // mWETH (decimals=18)
-  currency1: '0xec8856122e88c4e10b2ba448e63933d5a41028cc' as `0x${string}`, // mUSDC (decimals=6)
+  currency0: '0x28fc8245697Fb0a2B4B8e8836E7C02A76C823126' as `0x${string}`, // mUSDC (decimals=6)
+  currency1: '0x46527B7dF29d1B858F76e17BefA8dFe87606F182' as `0x${string}`, // mWETH (decimals=18)
   fee: 8388608, // DYNAMIC_FEE_FLAG
   tickSpacing: 60,
-  hooks: '0x17aCa8a97eaf284762ee139f743E565cDF4cE0c8' as `0x${string}`,
+  hooks: '0xB7056bFF4178b8CfaDEBF4Ab9BAa9901524Ce0c8' as `0x${string}`,
 } as const
 
 export const AEGIS_POLICY_ABI = [

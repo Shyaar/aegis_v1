@@ -15,9 +15,9 @@ import {MockERC20} from "../src/mocks/MockERC20.sol";
 
 contract DemoSwap is Script {
     address constant SWAP_ROUTER = 0x9140a78c1A137c7fF1c151EC8231272aF78a99A4;
-    address constant mUSDC = 0xec8856122e88c4e10b2ba448e63933d5a41028cc;
-    address constant mWETH = 0xcf841f89753158557091e0c28781f09e27aa3b55;
-    address constant HOOK  = 0x17aCa8a97eaf284762ee139f743E565cDF4cE0c8;
+    address constant mUSDC = 0x28fc8245697Fb0a2B4B8e8836E7C02A76C823126;
+    address constant mWETH = 0x46527B7dF29d1B858F76e17BefA8dFe87606F182;
+    address constant HOOK  = 0xB7056bFF4178b8CfaDEBF4Ab9BAa9901524Ce0c8;
 
     function run() external {
         uint256 swapAmount = vm.envUint("SWAP_AMOUNT");
@@ -25,8 +25,8 @@ contract DemoSwap is Script {
         address trader = vm.addr(pk);
 
         PoolKey memory key = PoolKey({
-            currency0: Currency.wrap(mWETH),  // mWETH < mUSDC
-            currency1: Currency.wrap(mUSDC),
+            currency0: Currency.wrap(mUSDC),  // mUSDC < mWETH by address
+            currency1: Currency.wrap(mWETH),
             fee: LPFeeLibrary.DYNAMIC_FEE_FLAG,
             tickSpacing: 60,
             hooks: IHooks(HOOK)
@@ -34,17 +34,18 @@ contract DemoSwap is Script {
 
         vm.startBroadcast(pk);
 
-        // Mint mWETH to trader and approve router
-        MockERC20(mWETH).mint(trader, swapAmount);
-        IERC20(mWETH).approve(SWAP_ROUTER, swapAmount);
+        // Mint mWETH to trader, approve router and hook for premium
+        MockERC20(mWETH).mint(trader, swapAmount * 2);
+        IERC20(mWETH).approve(SWAP_ROUTER, type(uint256).max);
+        IERC20(mWETH).approve(HOOK, type(uint256).max);
 
-        // Swap mWETH -> mUSDC (currency0 -> currency1, zeroForOne=true)
+        // Swap mWETH -> mUSDC (currency1 -> currency0, zeroForOne=false)
         PoolSwapTest(SWAP_ROUTER).swap(
             key,
             SwapParams({
-                zeroForOne: true,
+                zeroForOne: false,
                 amountSpecified: -int256(swapAmount),
-                sqrtPriceLimitX96: TickMath.MIN_SQRT_PRICE + 1
+                sqrtPriceLimitX96: TickMath.MAX_SQRT_PRICE - 1
             }),
             PoolSwapTest.TestSettings({takeClaims: false, settleUsingBurn: false}),
             abi.encode(IAegisPolicy.CoverageTier.Premium)

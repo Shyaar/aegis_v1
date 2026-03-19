@@ -14,15 +14,23 @@ interface FaucetModalProps {
   onClose: () => void
 }
 
+import { useWalletClient } from "wagmi"
+
 export default function FaucetModal({ isOpen, onClose }: FaucetModalProps) {
   const { user } = usePrivy()
   const address = user?.wallet?.address as `0x${string}` | undefined
   const { mint, isPending } = useMintTokens()
+  const { data: walletClient } = useWalletClient()
   const [copiedAddress, setCopiedAddress] = useState<string | null>(null)
   const [mintedWETH, setMintedWETH] = useState(false)
   const [mintedUSDC, setMintedUSDC] = useState(false)
   const [isMintingWETH, setIsMintingWETH] = useState(false)
   const [isMintingUSDC, setIsMintingUSDC] = useState(false)
+
+  const watchAsset = async (address: `0x${string}`, symbol: string, decimals: number) => {
+    if (!walletClient) return
+    await walletClient.watchAsset({ type: 'ERC20', options: { address, symbol, decimals } }).catch(() => {})
+  }
 
   const handleMintWETH = async () => {
     if (!address) return
@@ -30,12 +38,7 @@ export default function FaucetModal({ isOpen, onClose }: FaucetModalProps) {
     const toastId = toast.loading("Minting 10 mWETH...");
     try {
       await mint(AEGIS_CONTRACTS.mWETH, address, parseUnits("10", 18))
-      if (window.ethereum) {
-        await window.ethereum.request({
-          method: 'wallet_watchAsset',
-          params: { type: 'ERC20', options: { address: AEGIS_CONTRACTS.mWETH, symbol: 'mWETH', decimals: 18 } },
-        }).catch(() => { })
-      }
+      await watchAsset(AEGIS_CONTRACTS.mWETH, 'mWETH', 18)
       setMintedWETH(true)
       toast.success("mWETH minted!", { id: toastId })
     } catch (error: any) {
@@ -52,12 +55,7 @@ export default function FaucetModal({ isOpen, onClose }: FaucetModalProps) {
     const toastId = toast.loading("Minting 1000 mUSDC...");
     try {
       await mint(AEGIS_CONTRACTS.mUSDC, address, parseUnits("1000", 6))
-      if (window.ethereum) {
-        await window.ethereum.request({
-          method: 'wallet_watchAsset',
-          params: { type: 'ERC20', options: { address: AEGIS_CONTRACTS.mUSDC, symbol: 'mUSDC', decimals: 6 } },
-        }).catch(() => { })
-      }
+      await watchAsset(AEGIS_CONTRACTS.mUSDC, 'mUSDC', 6)
       setMintedUSDC(true)
       toast.success("mUSDC minted!", { id: toastId })
     } catch (error: any) {
