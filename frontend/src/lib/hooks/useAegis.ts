@@ -121,19 +121,22 @@ export function useRecentTrades() {
 
   useEffect(() => {
     if (!client) return
-    client.getLogs({
-      address: AEGIS_CONTRACTS.HOOK,
-      event: {
-        type: 'event',
-        name: 'SwapCovered',
-        inputs: [
-          { name: 'swapper', type: 'address', indexed: true },
-          { name: 'premium', type: 'uint256', indexed: false },
-          { name: 'amount', type: 'uint256', indexed: false },
-        ],
-      },
-      fromBlock: -2000n,
-      toBlock: 'latest',
+    client.getBlockNumber().then((latest) => {
+      const fromBlock = latest > 2000n ? latest - 2000n : 0n
+      return client.getLogs({
+        address: AEGIS_CONTRACTS.HOOK,
+        event: {
+          type: 'event',
+          name: 'SwapCovered',
+          inputs: [
+            { name: 'swapper', type: 'address', indexed: true },
+            { name: 'premium', type: 'uint256', indexed: false },
+            { name: 'amount', type: 'uint256', indexed: false },
+          ],
+        },
+        fromBlock,
+        toBlock: 'latest',
+      })
     }).then(async (logs) => {
       const withTimestamps = await Promise.all(
         logs.slice(-20).reverse().map(async (log) => {
