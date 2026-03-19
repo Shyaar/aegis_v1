@@ -25,8 +25,8 @@ contract DemoSwap is Script {
         address trader = vm.addr(pk);
 
         PoolKey memory key = PoolKey({
-            currency0: Currency.wrap(mUSDC),  // mUSDC < mWETH by address
-            currency1: Currency.wrap(mWETH),
+            currency0: Currency.wrap(mWETH),  // mWETH < mUSDC by address
+            currency1: Currency.wrap(mUSDC),
             fee: LPFeeLibrary.DYNAMIC_FEE_FLAG,
             tickSpacing: 60,
             hooks: IHooks(HOOK)
@@ -34,21 +34,20 @@ contract DemoSwap is Script {
 
         vm.startBroadcast(pk);
 
-        // Mint mWETH to trader, approve router and hook for premium
+        // Mint mWETH to trader, approve router only (hook uses poolManager.take())
         MockERC20(mWETH).mint(trader, swapAmount * 2);
         IERC20(mWETH).approve(SWAP_ROUTER, type(uint256).max);
-        IERC20(mWETH).approve(HOOK, type(uint256).max);
 
-        // Swap mWETH -> mUSDC (currency1 -> currency0, zeroForOne=false)
+        // Swap mWETH -> mUSDC (currency0 -> currency1, zeroForOne=true)
         PoolSwapTest(SWAP_ROUTER).swap(
             key,
             SwapParams({
-                zeroForOne: false,
+                zeroForOne: true,
                 amountSpecified: -int256(swapAmount),
-                sqrtPriceLimitX96: TickMath.MAX_SQRT_PRICE - 1
+                sqrtPriceLimitX96: TickMath.MIN_SQRT_PRICE + 1
             }),
             PoolSwapTest.TestSettings({takeClaims: false, settleUsingBurn: false}),
-            abi.encode(IAegisPolicy.CoverageTier.Premium)
+            abi.encode(uint8(IAegisPolicy.CoverageTier.Premium), trader)
         );
 
         vm.stopBroadcast();
