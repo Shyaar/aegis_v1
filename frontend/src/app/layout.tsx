@@ -17,6 +17,9 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Aegis Protocol | Slippage Insurance",
   description: "Native slippage insurance embedded in Uniswap v4",
+  icons: {
+    icon: "/aegis_logo.svg",
+  },
 };
 
 import Providers  from "@/components/providers/Providers";

@@ -28,10 +28,10 @@ export default function SwapCard({ activeTab = "Swap" }: { activeTab?: string })
   const { ready, authenticated, user, logout } = usePrivy();
 
   // helper to shorten wallet
-    if (user?.wallet?.address){
-      isConnected = true;
-      address = user?.wallet?.address
-    }
+  if (user?.wallet?.address) {
+    isConnected = true;
+    address = user?.wallet?.address
+  }
 
 
   const MWETH_PRICE = 2000 // 1 mWETH = 2000 mUSDC (pool starting price)
@@ -56,7 +56,7 @@ export default function SwapCard({ activeTab = "Swap" }: { activeTab?: string })
   // Aegis Contract Integration
   const { data: premiumAmountData, isLoading: isPremiumLoading } = useAegisPremium({
     swapSize: parseUnits(sellAmount || "0", sellDecimals),
-    poolLiquidity: BigInt(1000000) * BigInt(10**18),
+    poolLiquidity: BigInt(1000000) * BigInt(10 ** 18),
     baseFee: 3000,
     volatilitySignal: BigInt(100),
     tier: coverageTier,
@@ -102,17 +102,18 @@ export default function SwapCard({ activeTab = "Swap" }: { activeTab?: string })
     if (!isConnected) return
     const toastId = toast.loading("Preparing swap...")
     try {
-      // mWETH → mUSDC: zeroForOne=false (selling currency1 for currency0)
-      // mUSDC → mWETH: zeroForOne=true  (selling currency0 for currency1)
-      const zeroForOne = sellSymbol === "mUSDC"
-      const sellToken = zeroForOne ? AEGIS_CONTRACTS.mUSDC : AEGIS_CONTRACTS.mWETH
-      const decimals = zeroForOne ? 6 : 18
+      // currency0=mWETH, currency1=mUSDC
+      // zeroForOne=true  → selling mWETH (currency0) for mUSDC (currency1)
+      // zeroForOne=false → selling mUSDC (currency1) for mWETH (currency0)
+      const zeroForOne = sellSymbol === "mWETH"
+      const sellToken = zeroForOne ? AEGIS_CONTRACTS.mWETH : AEGIS_CONTRACTS.mUSDC
+      const decimals = zeroForOne ? 18 : 6
       const amount = parseUnits(sellAmount || "0", decimals)
 
       // approve PoolSwapTest to spend sell token
       toast.loading("Approving tokens...", { id: toastId })
       await approve(sellToken, AEGIS_CONTRACTS.POOL_SWAP_TEST, maxUint256)
-      
+
       // execute swap through Aegis hook
       toast.loading("Executing swap...", { id: toastId })
       await swap(amount, zeroForOne, coverageTier)
@@ -151,7 +152,7 @@ export default function SwapCard({ activeTab = "Swap" }: { activeTab?: string })
               <span className="text-[10px] font-black text-aegis-text-dim uppercase tracking-widest">
                 {activeTab === "Buy" ? "You Pay" : activeTab === "Sell" ? "You Sell" : "You Sell"}
               </span>
-              <span className="text-[10px] font-bold text-aegis-text-dim uppercase">Balance: {sellBalance ? formatUnits(sellBalance as bigint, sellDecimals) : '0'} {sellSymbol}</span>
+              <span className="text-[10px] font-bold text-aegis-text-dim uppercase">Balance: {sellBalance ? Number(formatUnits(sellBalance as bigint, sellDecimals)).toFixed(2) : '0.00'} {sellSymbol}</span>
 
             </div>
             <div className="flex justify-between items-center gap-4">
@@ -193,29 +194,29 @@ export default function SwapCard({ activeTab = "Swap" }: { activeTab?: string })
 
           {/* Limit Price Input */}
           {activeTab === "Limit" && (
-          <div className="bg-black/50 rounded-[28px] p-5 border border-aegis-border animate-in fade-in slide-in-from-top-2 duration-300">
-            <div className="flex justify-between items-center mb-3 px-1">
-              <span className="text-[10px] font-black text-aegis-text-dim uppercase tracking-widest">Limit Price</span>
-              <span className="text-[10px] font-bold text-aegis-accent uppercase cursor-pointer hover:underline underline-offset-4">Market</span>
-            </div>
-            <div className="flex justify-between items-center gap-4">
-              <input
-                type="text"
-                value={limitPrice}
-                onChange={(e) => setLimitPrice(e.target.value)}
-                className="w-full bg-transparent text-2xl font-black outline-none placeholder:text-white/10"
-              />
-              <span className="text-sm font-black text-aegis-text-dim whitespace-nowrap">{buySymbol} per {sellSymbol}</span>
+            <div className="bg-black/50 rounded-[28px] p-5 border border-aegis-border animate-in fade-in slide-in-from-top-2 duration-300">
+              <div className="flex justify-between items-center mb-3 px-1">
+                <span className="text-[10px] font-black text-aegis-text-dim uppercase tracking-widest">Limit Price</span>
+                <span className="text-[10px] font-bold text-aegis-accent uppercase cursor-pointer hover:underline underline-offset-4">Market</span>
+              </div>
+              <div className="flex justify-between items-center gap-4">
+                <input
+                  type="text"
+                  value={limitPrice}
+                  onChange={(e) => setLimitPrice(e.target.value)}
+                  className="w-full bg-transparent text-2xl font-black outline-none placeholder:text-white/10"
+                />
+                <span className="text-sm font-black text-aegis-text-dim whitespace-nowrap">{buySymbol} per {sellSymbol}</span>
 
+              </div>
             </div>
-          </div>
-        )}
+          )}
 
           {/* Switch Divider (Only for Swap and Limit) */}
           {!isBuyOrSell && (
             <div className="absolute h-2 flex items-center justify-center left-[45%] top-[50%] z-10">
               <div className="absolute w-full h-px bg-aegis-border" />
-              <button 
+              <button
                 onClick={toggleTokens}
                 className="w-12 h-12 glass-card rounded-2xl flex items-center justify-center border border-aegis-border hover:scale-110 transition-transform bg-aegis-bg"
               >
@@ -286,18 +287,17 @@ export default function SwapCard({ activeTab = "Swap" }: { activeTab?: string })
                 {/* Tier selector */}
                 <div className="grid grid-cols-3 gap-2">
                   {([
-                    { label: "BASIC",    value: 1, trigger: "1%",   bps: "5bps"  },
+                    { label: "BASIC", value: 1, trigger: "1%", bps: "5bps" },
                     { label: "STANDARD", value: 2, trigger: "0.5%", bps: "10bps" },
-                    { label: "PREMIUM",  value: 3, trigger: "0.2%", bps: "20bps" },
+                    { label: "PREMIUM", value: 3, trigger: "0.2%", bps: "20bps" },
                   ] as const).map((tier) => (
                     <button
                       key={tier.value}
                       onClick={() => setCoverageTier(tier.value)}
-                      className={`flex flex-col items-center py-3 px-2 rounded-2xl border transition-all ${
-                        coverageTier === tier.value
+                      className={`flex flex-col items-center py-3 px-2 rounded-2xl border transition-all ${coverageTier === tier.value
                           ? "bg-aegis-accent/20 border-aegis-accent text-aegis-accent"
                           : "bg-white/[0.03] border-aegis-border text-aegis-text-dim hover:border-white/20"
-                      }`}
+                        }`}
                     >
                       <span className="text-[9px] font-black uppercase tracking-widest">{tier.label}</span>
                       <span className="text-[8px] font-bold mt-1 opacity-70">triggers &gt; {tier.trigger}</span>
@@ -323,9 +323,9 @@ export default function SwapCard({ activeTab = "Swap" }: { activeTab?: string })
                     <span className="text-white">
                       {premiumAmountData !== undefined
                         ? `${formatUnits(
-                            parseUnits(sellAmount || "0", sellDecimals) + premiumAmountData,
-                            sellDecimals
-                          )} ${sellSymbol}`
+                          parseUnits(sellAmount || "0", sellDecimals) + premiumAmountData,
+                          sellDecimals
+                        )} ${sellSymbol}`
                         : "—"}
                     </span>
                   </div>

@@ -10,22 +10,23 @@ export const unichainSepolia = defineChain({
 })
 
 export const AEGIS_CONTRACTS = {
-  POLICY:         '0xD8a6735b847CAe677A355cb61FFB4932A4eD4B3c' as `0x${string}`,
-  RESERVE:        '0x594c9194A98F51747b17ee7a7B0CEBB5A77A6b1d' as `0x${string}`,
-  HOOK:           '0x4F25B3a510158A8C1917087E0679A82D473620C8' as `0x${string}`,
-  ORACLE:         '0x463426aF713Ddafe7Fd142859C0F1Ec8d7888833' as `0x${string}`,
-  mUSDC:          '0x25dfb92B22c873518e28a26B0FEbF681b7f99872' as `0x${string}`,
-  mWETH:          '0xfcAEDD04AcD307405d2E1Ff40fC89948701421a0' as `0x${string}`,
+  POLICY:         '0xAf401a43FAe5C352bbEc0A0aa25C3b49044Bce46' as `0x${string}`,
+  RESERVE:        '0x404362df39d9352D439eAA00cFaD2074498883d0' as `0x${string}`,
+  HOOK:           '0x2042d29d9FC03a225c6a1d56b5a138C9e61960C8' as `0x${string}`,
+  ORACLE:         '0x05A3277080884ad6a15Ca5BB4b842403c8Dc6396' as `0x${string}`,
+  mUSDC:          '0x665D2ce2a1c0De6D1a633f7E64C2383CB624662A' as `0x${string}`,
+  mWETH:          '0xad86B4C5048Fdc15550543C45cdD70f70D0A63EF' as `0x${string}`,
   POOL_SWAP_TEST: '0x9140a78c1a137c7ff1c151ec8231272af78a99a4' as `0x${string}`,
 } as const
 
 // PoolKey for the Aegis pool (fixed at deployment)
+// NOTE: mUSDC < mWETH by address, so currency0=mUSDC, currency1=mWETH
 export const AEGIS_POOL_KEY = {
-  currency0: '0x25dfb92B22c873518e28a26B0FEbF681b7f99872' as `0x${string}`, // mUSDC
-  currency1: '0xfcAEDD04AcD307405d2E1Ff40fC89948701421a0' as `0x${string}`, // mWETH
+  currency0: '0x665D2ce2a1c0De6D1a633f7E64C2383CB624662A' as `0x${string}`, // mUSDC (decimals=6)
+  currency1: '0xad86B4C5048Fdc15550543C45cdD70f70D0A63EF' as `0x${string}`, // mWETH (decimals=18)
   fee: 8388608, // DYNAMIC_FEE_FLAG
   tickSpacing: 60,
-  hooks: '0x4F25B3a510158A8C1917087E0679A82D473620C8' as `0x${string}`,
+  hooks: '0x2042d29d9FC03a225c6a1d56b5a138C9e61960C8' as `0x${string}`,
 } as const
 
 export const AEGIS_POLICY_ABI = [

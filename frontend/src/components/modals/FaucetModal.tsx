@@ -19,33 +19,52 @@ export default function FaucetModal({ isOpen, onClose }: FaucetModalProps) {
   const address = user?.wallet?.address as `0x${string}` | undefined
   const { mint, isPending } = useMintTokens()
   const [copiedAddress, setCopiedAddress] = useState<string | null>(null)
-  const [done, setDone] = useState(false)
+  const [mintedWETH, setMintedWETH] = useState(false)
+  const [mintedUSDC, setMintedUSDC] = useState(false)
+  const [isMintingWETH, setIsMintingWETH] = useState(false)
+  const [isMintingUSDC, setIsMintingUSDC] = useState(false)
 
-  const handleMint = async () => {
+  const handleMintWETH = async () => {
     if (!address) return
-    const toastId = toast.loading("Minting test tokens...");
+    setIsMintingWETH(true)
+    const toastId = toast.loading("Minting 10 mWETH...");
     try {
-      // mint 10 mWETH and 1000 mUSDC
       await mint(AEGIS_CONTRACTS.mWETH, address, parseUnits("10", 18))
-      await mint(AEGIS_CONTRACTS.mUSDC, address, parseUnits("1000", 6))
-
-      // prompt wallet to track tokens
       if (window.ethereum) {
-        for (const [addr, symbol, decimals] of [
-          [AEGIS_CONTRACTS.mWETH, 'mWETH', 18],
-          [AEGIS_CONTRACTS.mUSDC, 'mUSDC', 6],
-        ] as const) {
-          await window.ethereum.request({
-            method: 'wallet_watchAsset',
-            params: { type: 'ERC20', options: { address: addr, symbol, decimals } },
-          }).catch(() => {})
-        }
+        await window.ethereum.request({
+          method: 'wallet_watchAsset',
+          params: { type: 'ERC20', options: { address: AEGIS_CONTRACTS.mWETH, symbol: 'mWETH', decimals: 18 } },
+        }).catch(() => { })
       }
-      setDone(true)
-      toast.success("Tokens successfully minted!", { id: toastId })
+      setMintedWETH(true)
+      toast.success("mWETH minted!", { id: toastId })
     } catch (error: any) {
-      console.error("Failed to mint tokens:", error)
-      toast.error(error?.shortMessage || error?.message || "Failed to mint tokens", { id: toastId })
+      console.error("Failed to mint mWETH:", error)
+      toast.error(error?.shortMessage || error?.message || "Failed to mint mWETH", { id: toastId })
+    } finally {
+      setIsMintingWETH(false)
+    }
+  }
+
+  const handleMintUSDC = async () => {
+    if (!address) return
+    setIsMintingUSDC(true)
+    const toastId = toast.loading("Minting 1000 mUSDC...");
+    try {
+      await mint(AEGIS_CONTRACTS.mUSDC, address, parseUnits("1000", 6))
+      if (window.ethereum) {
+        await window.ethereum.request({
+          method: 'wallet_watchAsset',
+          params: { type: 'ERC20', options: { address: AEGIS_CONTRACTS.mUSDC, symbol: 'mUSDC', decimals: 6 } },
+        }).catch(() => { })
+      }
+      setMintedUSDC(true)
+      toast.success("mUSDC minted!", { id: toastId })
+    } catch (error: any) {
+      console.error("Failed to mint mUSDC:", error)
+      toast.error(error?.shortMessage || error?.message || "Failed to mint mUSDC", { id: toastId })
+    } finally {
+      setIsMintingUSDC(false)
     }
   }
 
@@ -88,14 +107,25 @@ export default function FaucetModal({ isOpen, onClose }: FaucetModalProps) {
           ))}
         </div>
 
-        <button
-          onClick={handleMint}
-          disabled={isPending || !address || done}
-          className="w-full py-5 rounded-2xl accent-gradient text-black font-black text-[12px] uppercase glow-accent hover:opacity-90 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {done ? "TOKENS MINTED ✓" : isPending ? "MINTING..." : "MINT TOKENS & ADD TO WALLET"}
-          {!isPending && !done && <Zap className="w-4 h-4 fill-current" />}
-        </button>
+        <div className="flex flex-col gap-3">
+          <button
+            onClick={handleMintWETH}
+            disabled={isMintingWETH || !address || mintedWETH}
+            className="w-full py-4 rounded-2xl accent-gradient text-black font-black text-[12px] uppercase glow-accent hover:opacity-90 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {mintedWETH ? "mWETH MINTED ✓" : isMintingWETH ? "MINTING mWETH..." : "MINT 10 mWETH & ADD TO WALLET"}
+            {!isMintingWETH && !mintedWETH && <Zap className="w-4 h-4 fill-current" />}
+          </button>
+          
+          <button
+            onClick={handleMintUSDC}
+            disabled={isMintingUSDC || !address || mintedUSDC}
+            className="w-full py-4 rounded-2xl accent-gradient text-black font-black text-[12px] uppercase glow-accent hover:opacity-90 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {mintedUSDC ? "mUSDC MINTED ✓" : isMintingUSDC ? "MINTING mUSDC..." : "MINT 1000 mUSDC & ADD TO WALLET"}
+            {!isMintingUSDC && !mintedUSDC && <Zap className="w-4 h-4 fill-current" />}
+          </button>
+        </div>
       </div>
     </Modal>
   )

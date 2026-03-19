@@ -49,10 +49,10 @@ contract DeployReactive is Script {
             hookAddress
         );
 
-        // Pay debt and register subscription with the system contract
-        reactive.subscribe();
-
         vm.stopBroadcast();
+
+        // NOTE: Call reactive.subscribe() manually on-chain after deployment
+        // (system contract calls revert in simulation)
 
         console.log("AegisReactive deployed at:", address(reactive));
         console.log("");

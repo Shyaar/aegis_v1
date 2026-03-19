@@ -39,8 +39,8 @@ contract DeploySepolia is Script {
         // -------------------------------------------------------
         // STEP 1 — Deploy mock tokens
         // -------------------------------------------------------
-        MockERC20 mockUSDC = new MockERC20("Mock USDC", "mUSDC");
-        MockERC20 mockWETH = new MockERC20("Mock WETH", "mWETH");
+        MockERC20 mockUSDC = new MockERC20("Mock USDC", "mUSDC", 6);
+        MockERC20 mockWETH = new MockERC20("Mock WETH", "mWETH", 18);
 
         console.log("mUSDC deployed at:", address(mockUSDC));
         console.log("mWETH deployed at:", address(mockWETH));
