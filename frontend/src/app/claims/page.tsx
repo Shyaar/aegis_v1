@@ -5,6 +5,7 @@ import { usePrivy } from "@privy-io/react-auth"
 import { formatUnits } from "viem"
 import { useNextClaimId, useClaim, useSettleClaim, useReserveBalance } from "@/lib/hooks/useAegis"
 import { AEGIS_CONTRACTS } from "@/lib/contracts"
+import RecentTrades from "@/components/claims/RecentTrades"
 import toast from "react-hot-toast"
 
 // Reads a single claim and renders a row
@@ -122,6 +123,7 @@ export default function ClaimsDashboard() {
         </div>
 
         <div className="space-y-8">
+          <RecentTrades />
           <h2 className="text-xl font-black uppercase tracking-tight flex items-center gap-3">
             <ShieldAlert className="w-5 h-5 text-amber-500" />
             Reserve Health

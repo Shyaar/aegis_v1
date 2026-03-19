@@ -88,6 +88,11 @@ export const AEGIS_HOOK_ABI = [
     { name: "price", type: "uint160", indexed: false },
     { name: "tier", type: "uint8", indexed: false }
   ], anonymous: false },
+  { type: "event", name: "SwapCovered", inputs: [
+    { name: "swapper", type: "address", indexed: true },
+    { name: "premium", type: "uint256", indexed: false },
+    { name: "amount", type: "uint256", indexed: false }
+  ], anonymous: false },
 ] as const
 
 export const MOCK_ERC20_ABI = [

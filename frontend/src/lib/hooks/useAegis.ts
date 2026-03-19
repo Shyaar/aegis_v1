@@ -1,5 +1,6 @@
-import { useReadContract, useWriteContract, useWatchContractEvent, usePublicClient, useSwitchChain, useChainId } from 'wagmi'
+import { useReadContract, useWriteContract, useWatchContractEvent, usePublicClient, useWalletClient } from 'wagmi'
 import { encodeAbiParameters, parseAbiParameters } from 'viem'
+import { useState, useEffect } from 'react'
 import {
   AEGIS_POLICY_ABI,
   AEGIS_RESERVE_ABI,
@@ -71,18 +72,17 @@ export function useClaim(claimId: bigint) {
 
 export function useSettleClaim() {
   const { writeContractAsync, data, error, isPending } = useWriteContract()
-  const { switchChainAsync } = useSwitchChain()
-  const chainId = useChainId()
+  const client = usePublicClient()
+  const { data: walletClient } = useWalletClient()
   const settle = async (claimId: bigint) => {
-    if (chainId !== unichainSepolia.id && switchChainAsync) {
-      await switchChainAsync({ chainId: unichainSepolia.id })
-    }
+    const nonce = await freshNonce(client, walletClient)
     return writeContractAsync({
       abi: AEGIS_RESERVE_ABI,
       address: AEGIS_CONTRACTS.RESERVE,
       functionName: 'settleClaim',
       args: [claimId],
       chain: unichainSepolia,
+      nonce,
     })
   }
   return { settle, data, error, isPending }
@@ -107,6 +107,68 @@ export function useMovingAverageGasPrice() {
     functionName: 'movingAverageGasPrice',
     chainId: unichainSepolia.id,
   })
+}
+
+export function useRecentTrades() {
+  const client = usePublicClient()
+  const [trades, setTrades] = useState<Array<{
+    txHash: string
+    amount: bigint
+    premium: bigint
+    blockNumber: bigint
+    timestamp: number
+  }>>([])
+
+  useEffect(() => {
+    if (!client) return
+    client.getLogs({
+      address: AEGIS_CONTRACTS.HOOK,
+      event: {
+        type: 'event',
+        name: 'SwapCovered',
+        inputs: [
+          { name: 'swapper', type: 'address', indexed: true },
+          { name: 'premium', type: 'uint256', indexed: false },
+          { name: 'amount', type: 'uint256', indexed: false },
+        ],
+      },
+      fromBlock: -2000n,
+      toBlock: 'latest',
+    }).then(async (logs) => {
+      const withTimestamps = await Promise.all(
+        logs.slice(-20).reverse().map(async (log) => {
+          const block = await client.getBlock({ blockNumber: log.blockNumber! })
+          return {
+            txHash: log.transactionHash!,
+            amount: (log.args as any).amount as bigint,
+            premium: (log.args as any).premium as bigint,
+            blockNumber: log.blockNumber!,
+            timestamp: Number(block.timestamp),
+          }
+        })
+      )
+      setTrades(withTimestamps)
+    }).catch(() => {})
+  }, [client])
+
+  useWatchContractEvent({
+    abi: AEGIS_HOOK_ABI,
+    address: AEGIS_CONTRACTS.HOOK,
+    eventName: 'SwapCovered',
+    chainId: unichainSepolia.id,
+    onLogs(logs) {
+      const newTrades = logs.map((log) => ({
+        txHash: log.transactionHash!,
+        amount: (log.args as any).amount as bigint,
+        premium: (log.args as any).premium as bigint,
+        blockNumber: log.blockNumber!,
+        timestamp: Math.floor(Date.now() / 1000),
+      }))
+      setTrades(prev => [...newTrades, ...prev].slice(0, 20))
+    },
+  })
+
+  return trades
 }
 
 export function useWatchClaimPaid(onClaim: (swapper: string, compensation: bigint) => void) {
@@ -139,18 +201,17 @@ export function useTokenBalance(token: `0x${string}`, account: `0x${string}` | u
 
 export function useMintTokens() {
   const { writeContractAsync, data, error, isPending } = useWriteContract()
-  const { switchChainAsync } = useSwitchChain()
-  const chainId = useChainId()
+  const client = usePublicClient()
+  const { data: walletClient } = useWalletClient()
   const mint = async (token: `0x${string}`, to: `0x${string}`, amount: bigint) => {
-    if (chainId !== unichainSepolia.id && switchChainAsync) {
-      await switchChainAsync({ chainId: unichainSepolia.id })
-    }
+    const nonce = await freshNonce(client, walletClient)
     return writeContractAsync({
       abi: MOCK_ERC20_ABI,
       address: token,
       functionName: 'mint',
       args: [to, amount],
       chain: unichainSepolia,
+      nonce,
     })
   }
   return { mint, data, error, isPending }
@@ -162,20 +223,28 @@ export function useMintTokens() {
 const MIN_SQRT_PRICE = BigInt("4295128740")
 const MAX_SQRT_PRICE = BigInt("1461446703485210103287273052203988822378723970341")
 
+async function freshNonce(
+  client: ReturnType<typeof usePublicClient>,
+  walletClient: { account?: { address?: `0x${string}` } } | null | undefined
+) {
+  const address = walletClient?.account?.address
+  if (!address || !client) return undefined
+  return client.getTransactionCount({ address, blockTag: 'pending' })
+}
+
 export function useApproveToken() {
   const { writeContractAsync, isPending } = useWriteContract()
-  const { switchChainAsync } = useSwitchChain()
-  const chainId = useChainId()
+  const client = usePublicClient()
+  const { data: walletClient } = useWalletClient()
   const approve = async (token: `0x${string}`, spender: `0x${string}`, amount: bigint) => {
-    if (chainId !== unichainSepolia.id && switchChainAsync) {
-      await switchChainAsync({ chainId: unichainSepolia.id })
-    }
+    const nonce = await freshNonce(client, walletClient)
     return writeContractAsync({
       abi: MOCK_ERC20_ABI,
       address: token,
       functionName: 'approve',
       args: [spender, amount],
       chain: unichainSepolia,
+      nonce,
     })
   }
   return { approve, isPending }
@@ -183,16 +252,14 @@ export function useApproveToken() {
 
 export function useProtectedSwap() {
   const { writeContractAsync, data, error, isPending } = useWriteContract()
-  const { switchChainAsync } = useSwitchChain()
-  const chainId = useChainId()
+  const client = usePublicClient()
+  const { data: walletClient } = useWalletClient()
 
-  // currency0=mWETH, currency1=mUSDC
-  // zeroForOne=true  → selling mWETH (currency0) for mUSDC (currency1)
-  // zeroForOne=false → selling mUSDC (currency1) for mWETH (currency0)
+  // currency0=mUSDC, currency1=mWETH
+  // zeroForOne=true  → selling mUSDC (currency0) for mWETH (currency1)
+  // zeroForOne=false → selling mWETH (currency1) for mUSDC (currency0)
   const swap = async (amountSpecified: bigint, zeroForOne: boolean, tier: number) => {
-    if (chainId !== unichainSepolia.id && switchChainAsync) {
-      await switchChainAsync({ chainId: unichainSepolia.id })
-    }
+    const nonce = await freshNonce(client, walletClient)
     return writeContractAsync({
       abi: POOL_SWAP_TEST_ABI,
       address: AEGIS_CONTRACTS.POOL_SWAP_TEST,
@@ -201,13 +268,14 @@ export function useProtectedSwap() {
         AEGIS_POOL_KEY,
         {
           zeroForOne,
-          amountSpecified: -amountSpecified, // negative = exact-input
+          amountSpecified: -amountSpecified,
           sqrtPriceLimitX96: zeroForOne ? MIN_SQRT_PRICE : MAX_SQRT_PRICE,
         },
         { takeClaims: false, settleUsingBurn: false },
-        encodeAbiParameters(parseAbiParameters('uint8'), [tier]), // CoverageTier enum as uint8
+        encodeAbiParameters(parseAbiParameters('uint8'), [tier]),
       ],
       chain: unichainSepolia,
+      nonce,
     })
   }
 
