@@ -12,9 +12,9 @@ import toast from "react-hot-toast"
 function ClaimRow({ claimId, userAddress, onSettle }: {
   claimId: bigint
   userAddress: string
-  onSettle: (id: bigint) => Promise<any>
+  onSettle: (id: bigint, refetch: () => void) => Promise<any>
 }) {
-  const { data } = useClaim(claimId)
+  const { data, refetch } = useClaim(claimId)
   if (!data) return null
   const [swapper, token, amount, settled, timestamp] = data as [string, string, bigint, boolean, bigint]
   if (swapper.toLowerCase() !== userAddress.toLowerCase()) return null
@@ -27,7 +27,7 @@ function ClaimRow({ claimId, userAddress, onSettle }: {
   const handleSettle = async () => {
     const toastId = toast.loading("Settling claim...")
     try {
-      await onSettle(claimId)
+      await onSettle(claimId, refetch)
       toast.success("Claim settled successfully!", { id: toastId })
     } catch (e: any) {
       console.error("Failed to settle claim:", e)

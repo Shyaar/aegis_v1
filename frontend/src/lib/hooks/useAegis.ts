@@ -74,9 +74,9 @@ export function useSettleClaim() {
   const { writeContractAsync, data, error, isPending } = useWriteContract()
   const client = usePublicClient()
   const { data: walletClient } = useWalletClient()
-  const settle = async (claimId: bigint) => {
+  const settle = async (claimId: bigint, refetch?: () => void) => {
     const nonce = await freshNonce(client, walletClient)
-    return writeContractAsync({
+    const hash = await writeContractAsync({
       abi: AEGIS_RESERVE_ABI,
       address: AEGIS_CONTRACTS.RESERVE,
       functionName: 'settleClaim',
@@ -84,6 +84,9 @@ export function useSettleClaim() {
       chain: unichainSepolia,
       nonce,
     })
+    if (client) await client.waitForTransactionReceipt({ hash })
+    refetch?.()
+    return hash
   }
   return { settle, data, error, isPending }
 }
