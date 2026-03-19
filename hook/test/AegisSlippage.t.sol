@@ -294,4 +294,52 @@ contract AegisSlippageTest is Test, Deployers {
         }
         // If no claim: hook correctly determined slippage was within threshold — no assertion needed
     }
+
+    // =========================================================================
+    // Gap 7: Reactive Network — premium feedback loop
+    // =========================================================================
+
+    /**
+     * Demonstrates the full Reactive Network feedback loop:
+     * 1. Swap occurs → slippage detected → claim recorded
+     * 2. Reactive Network raises extraBps on AegisPolicy (simulated via direct call)
+     * 3. Next swap pays a higher premium than the first
+     *
+     * This proves the reserve self-protects during high-volatility periods.
+     */
+    function test_Reactive_PremiumRaisedAfterClaim() public {
+        _addLiquidity(THIN_LIQUIDITY);
+        _seedReserve(10_000 ether);
+
+        IAegisPolicy.PolicyParams memory params = IAegisPolicy.PolicyParams({
+            swapSize: 0.5 ether,
+            poolLiquidity: uint128(uint256(int256(THIN_LIQUIDITY))),
+            baseFee: 3000,
+            volatilitySignal: 0,
+            tier: IAegisPolicy.CoverageTier.Premium
+        });
+
+        // 1. Baseline premium before any claims
+        uint256 premiumBefore = policy.calculatePremium(params);
+        assertEq(policy.extraBps(), 0, "extraBps should start at 0");
+
+        // 2. Swap causes slippage → claim recorded
+        uint256 claimsBefore = reserve.nextClaimId();
+        _swap(-0.5 ether, IAegisPolicy.CoverageTier.Premium);
+        assertEq(reserve.nextClaimId(), claimsBefore + 1, "Claim should be recorded");
+
+        // 3. Reactive Network detects ClaimPaid and calls updateBasePremium
+        //    (in production this is a cross-chain callback; here we simulate it directly)
+        policy.updateBasePremium(address(this), 50);
+        assertEq(policy.extraBps(), 50, "Reactive should have raised extraBps to 50");
+
+        // 4. Next swap pays higher premium
+        uint256 premiumAfter = policy.calculatePremium(params);
+        assertGt(premiumAfter, premiumBefore, "Premium should be higher after Reactive raises extraBps");
+
+        // 5. Reactive resets premium after quiet period
+        policy.clearBasePremium(address(this));
+        assertEq(policy.extraBps(), 0, "Reactive should reset extraBps after quiet period");
+        assertEq(policy.calculatePremium(params), premiumBefore, "Premium should return to baseline");
+    }
 }
