@@ -117,7 +117,7 @@ export default function SwapCard({ activeTab = "Swap" }: { activeTab?: string })
 
       // execute swap through Aegis hook
       toast.loading("Executing swap...", { id: toastId })
-      await swap(amount, zeroForOne, coverageTier)
+      await swap(amount, zeroForOne, isInsured ? coverageTier : 0)
       toast.success("Swap successful!", { id: toastId })
     } catch (e: any) {
       console.error("Swap failed:", e?.message ?? e)

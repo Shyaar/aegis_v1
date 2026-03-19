@@ -31,9 +31,9 @@ export default function RecentTrades() {
           ) : (
             trades.map((t) => (
               <div key={t.txHash} className="grid grid-cols-3 px-6 py-4 items-center hover:bg-white/[0.01] transition-all">
-                <div className="font-black text-sm">{Number(formatUnits(t.amount, 18)).toFixed(4)}</div>
+                <div className="font-black text-sm">{Number(formatUnits(t.amount, 18)).toFixed(4)} mWETH</div>
                 <div className="text-center text-[11px] font-bold text-aegis-accent">
-                  {Number(formatUnits(t.premium, 18)).toFixed(6)}
+                  {Number(formatUnits(t.premium, 18)).toFixed(6)} mWETH
                 </div>
                 <div className="text-right flex items-center justify-end gap-2">
                   <span className="text-[10px] font-bold text-aegis-text-dim">{timeAgo(t.timestamp)}</span>

@@ -15,9 +15,9 @@ import {MockERC20} from "../src/mocks/MockERC20.sol";
 
 contract DemoSwap is Script {
     address constant SWAP_ROUTER = 0x9140a78c1A137c7fF1c151EC8231272aF78a99A4;
-    address constant mUSDC = 0x16a1234f95e6cdefaae4d7ecd352afe4b9946a35;
-    address constant mWETH = 0x1de340ae93ac4896ac5fed63b73306325395f195;
-    address constant HOOK  = 0xdcdcbde6ec7209ad97db4cbe5e40c16127d820c8;
+    address constant mUSDC = 0x16A1234F95E6cDeFAaE4d7ECd352AFE4B9946A35;
+    address constant mWETH = 0x1dE340Ae93AC4896AC5feD63b73306325395f195;
+    address constant HOOK  = 0xDcdcBDe6Ec7209Ad97dB4CbE5e40C16127d820C8;
 
     function run() external {
         uint256 swapAmount = vm.envUint("SWAP_AMOUNT");
