@@ -2,7 +2,23 @@
 
 **On-chain slippage insurance for Uniswap v4, powered by the Reactive Network.**
 
-Aegis is a Uniswap v4 Hook that lets traders buy tiered slippage protection at swap time. A small premium is collected before the swap; if execution price deviates beyond the chosen threshold, a compensation claim is automatically recorded and settled from the reserve — no manual filing, no off-chain oracle, no trust assumptions.
+---
+
+## The Problem
+
+Every swap on a decentralized exchange carries hidden execution risk. Slippage, toxic order flow, and sudden volatility can cause traders to receive significantly less than the quoted price — with no recourse. Existing solutions are either off-chain (requiring trust), manual (requiring the user to file a claim), or non-existent for retail traders.
+
+The result: retail traders absorb losses silently, every single day.
+
+---
+
+## The Solution
+
+Aegis embeds insurance directly into the swap lifecycle as a **Uniswap v4 Hook**. Before a swap executes, the user selects a coverage tier and pays a small premium. After the swap, the hook automatically compares the actual execution price to the quoted price. If slippage exceeds the tier threshold, a compensation claim is instantly recorded on-chain — no forms, no off-chain verification, no waiting.
+
+The **Reactive Network** monitors claim events cross-chain and dynamically adjusts premiums in real time when volatility spikes, keeping the reserve solvent without any manual intervention.
+
+**The result:** traders get guaranteed price protection at swap time, with atomic settlement and zero trust assumptions.
 
 ---
 
