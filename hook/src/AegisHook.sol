@@ -27,12 +27,15 @@ import {
     Currency,
     CurrencyLibrary
 } from "@uniswap/v4-core/src/types/Currency.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 contract AegisHook is BaseHook {
     using PoolIdLibrary for PoolKey;
     using StateLibrary for IPoolManager;
     using CurrencyLibrary for Currency;
     using LPFeeLibrary for uint24;
+    using SafeERC20 for IERC20;
 
     // --- State ---
     IAegisPolicy public policy;
@@ -197,22 +200,20 @@ contract AegisHook is BaseHook {
                 fee: dynamicFee
             });
 
-            // Collect premium
+            // Collect premium directly from swapper via transferFrom
             Currency inputCurrency = params.zeroForOne ? key.currency0 : key.currency1;
-            
-            // Actually pull the physical tokens off the PoolManager and send them straight to the reserve
-            poolManager.take(inputCurrency, address(reserve), premium);
+            address inputToken = Currency.unwrap(inputCurrency);
+            IERC20(inputToken).safeTransferFrom(swapper, address(reserve), premium);
+            reserve.depositPremium(inputToken, premium);
 
-            // Update the accounting on the Reserve side
-            reserve.depositPremium(Currency.unwrap(inputCurrency), premium);
-
-            // Return a delta that accounts for the premium taken
+            // BeforeSwapDelta: tell PoolManager the hook consumed `premium` from the input side
+            // so the swap proceeds on (amountSpecified - premium)
             BeforeSwapDelta hookDelta;
             if (params.amountSpecified < 0) {
-                // Exact In: hook takes 'premium' from the input
+                // Exact In: reduce input by premium
                 hookDelta = toBeforeSwapDelta(int128(int256(premium)), 0);
             } else {
-                // Exact Out: hook takes 'premium' from the input (which is unspecified)
+                // Exact Out: charge premium on unspecified (input) side
                 hookDelta = toBeforeSwapDelta(0, int128(int256(premium)));
             }
 
