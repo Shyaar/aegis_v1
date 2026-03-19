@@ -94,6 +94,9 @@ contract AegisHookFlowTest is Test, Deployers {
         // Add liquidity
         MockERC20(Currency.unwrap(currency0)).approve(address(modifyLiquidityRouter), type(uint256).max);
         MockERC20(Currency.unwrap(currency1)).approve(address(modifyLiquidityRouter), type(uint256).max);
+        // approve hook to pull premium from address(this) (the test contract acts as the user)
+        MockERC20(Currency.unwrap(currency0)).approve(address(hook), type(uint256).max);
+        MockERC20(Currency.unwrap(currency1)).approve(address(hook), type(uint256).max);
 
         modifyLiquidityRouter.modifyLiquidity(
             key,
@@ -115,6 +118,14 @@ contract AegisHookFlowTest is Test, Deployers {
         MockERC20(Currency.unwrap(currency1)).mint(address(this), 100 ether);
         MockERC20(Currency.unwrap(currency1)).approve(address(reserve), 100 ether);
         reserve.seedReserve(Currency.unwrap(currency1), 100 ether);
+
+        // Fund swapRouter so it can pay premiums (hook pulls from swapper = swapRouter)
+        MockERC20(Currency.unwrap(currency0)).mint(address(swapRouter), 1000 ether);
+        MockERC20(Currency.unwrap(currency1)).mint(address(swapRouter), 1000 ether);
+        vm.prank(address(swapRouter));
+        MockERC20(Currency.unwrap(currency0)).approve(address(hook), type(uint256).max);
+        vm.prank(address(swapRouter));
+        MockERC20(Currency.unwrap(currency1)).approve(address(hook), type(uint256).max);
     }
 
 
@@ -149,7 +160,7 @@ contract AegisHookFlowTest is Test, Deployers {
         MockERC20(Currency.unwrap(currency0)).approve(address(swapRouter), type(uint256).max);
         MockERC20(Currency.unwrap(currency1)).approve(address(swapRouter), type(uint256).max);
 
-        bytes memory hookData = abi.encode(IAegisPolicy.CoverageTier.Standard);
+        bytes memory hookData = abi.encode(uint8(IAegisPolicy.CoverageTier.Standard), address(this));
 
         uint256 reserveInitialBalance = reserve.getReserveBalance(Currency.unwrap(currency0));
 
@@ -180,7 +191,7 @@ contract AegisHookFlowTest is Test, Deployers {
         MockERC20(Currency.unwrap(currency1)).mint(address(this), 10 ether);
         MockERC20(Currency.unwrap(currency1)).approve(address(swapRouter), type(uint256).max);
 
-        bytes memory hookData = abi.encode(IAegisPolicy.CoverageTier.Standard);
+        bytes memory hookData = abi.encode(uint8(IAegisPolicy.CoverageTier.Standard), address(this));
 
         uint256 reserveInitialBalance = reserve.getReserveBalance(Currency.unwrap(currency0));
 
@@ -212,7 +223,7 @@ contract AegisHookFlowTest is Test, Deployers {
         MockERC20(Currency.unwrap(currency0)).mint(address(this), 100 ether);
         MockERC20(Currency.unwrap(currency0)).approve(address(swapRouter), type(uint256).max);
         
-        bytes memory hookData = abi.encode(IAegisPolicy.CoverageTier.Premium); 
+        bytes memory hookData = abi.encode(uint8(IAegisPolicy.CoverageTier.Premium), address(this)); 
 
         uint256 initialClaims = reserve.nextClaimId();
 
@@ -252,7 +263,7 @@ contract AegisHookFlowTest is Test, Deployers {
                 takeClaims: false,
                 settleUsingBurn: false
             }),
-            abi.encode(IAegisPolicy.CoverageTier.Premium)
+            abi.encode(uint8(IAegisPolicy.CoverageTier.Premium), address(this))
         );
 
         uint256 claimId = reserve.nextClaimId() - 1;

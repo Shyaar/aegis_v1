@@ -92,6 +92,17 @@ contract AegisSlippageTest is Test, Deployers {
         MockERC20(Currency.unwrap(currency1)).approve(address(modifyLiquidityRouter), type(uint256).max);
         MockERC20(Currency.unwrap(currency0)).approve(address(swapRouter), type(uint256).max);
         MockERC20(Currency.unwrap(currency1)).approve(address(swapRouter), type(uint256).max);
+        // approve hook to pull premium from address(this) (the test contract acts as the user)
+        MockERC20(Currency.unwrap(currency0)).approve(address(hook), type(uint256).max);
+        MockERC20(Currency.unwrap(currency1)).approve(address(hook), type(uint256).max);
+
+        // Fund swapRouter so it can pay premiums (hook pulls from swapper = swapRouter)
+        MockERC20(Currency.unwrap(currency0)).mint(address(swapRouter), 1_000_000 ether);
+        MockERC20(Currency.unwrap(currency1)).mint(address(swapRouter), 1_000_000 ether);
+        vm.prank(address(swapRouter));
+        MockERC20(Currency.unwrap(currency0)).approve(address(hook), type(uint256).max);
+        vm.prank(address(swapRouter));
+        MockERC20(Currency.unwrap(currency1)).approve(address(hook), type(uint256).max);
     }
 
     // =========================================================================
@@ -122,7 +133,7 @@ contract AegisSlippageTest is Test, Deployers {
             key,
             SwapParams({zeroForOne: true, amountSpecified: amount, sqrtPriceLimitX96: TickMath.MIN_SQRT_PRICE + 1}),
             PoolSwapTest.TestSettings({takeClaims: false, settleUsingBurn: false}),
-            abi.encode(tier)
+            abi.encode(uint8(tier), address(this))
         );
     }
 

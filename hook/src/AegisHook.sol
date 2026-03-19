@@ -165,9 +165,14 @@ contract AegisHook is BaseHook {
             ? uint256(params.amountSpecified)
             : uint256(-params.amountSpecified);
 
-        // 3. Handle Insurance Tier (passed via hookData)
+        // 3. Handle Insurance Tier (passed via hookData as (uint8 tier, address sender))
         IAegisPolicy.CoverageTier tier = IAegisPolicy.CoverageTier.None;
-        if (hookData.length > 0) {
+        address premiumPayer = swapper;
+        if (hookData.length >= 32) {
+            (uint8 tierRaw, address sender) = abi.decode(hookData, (uint8, address));
+            tier = IAegisPolicy.CoverageTier(tierRaw);
+            if (sender != address(0)) premiumPayer = sender;
+        } else if (hookData.length > 0) {
             tier = abi.decode(hookData, (IAegisPolicy.CoverageTier));
         }
 
@@ -200,30 +205,18 @@ contract AegisHook is BaseHook {
                 fee: dynamicFee
             });
 
-            // Collect premium directly from swapper via transferFrom
+            // Collect premium directly from actual user via transferFrom (side-channel, outside PoolManager accounting)
             Currency inputCurrency = params.zeroForOne ? key.currency0 : key.currency1;
             address inputToken = Currency.unwrap(inputCurrency);
-            IERC20(inputToken).safeTransferFrom(swapper, address(reserve), premium);
+            IERC20(inputToken).safeTransferFrom(premiumPayer, address(reserve), premium);
             reserve.depositPremium(inputToken, premium);
-
-            // BeforeSwapDelta: tell PoolManager the hook consumed `premium` from the input side
-            // so the swap proceeds on (amountSpecified - premium)
-            BeforeSwapDelta hookDelta;
-            if (params.amountSpecified < 0) {
-                // Exact In: reduce input by premium
-                hookDelta = toBeforeSwapDelta(int128(int256(premium)), 0);
-            } else {
-                // Exact Out: charge premium on unspecified (input) side
-                hookDelta = toBeforeSwapDelta(0, int128(int256(premium)));
-            }
-
 
             emit InsuranceQuoted(swapper, sqrtPriceX96, tier);
             emit SwapCovered(swapper, premium, amountSpecified);
 
             return (
                 BaseHook.beforeSwap.selector,
-                hookDelta,
+                BeforeSwapDeltaLibrary.ZERO_DELTA,
                 dynamicFee | LPFeeLibrary.OVERRIDE_FEE_FLAG
             );
         }

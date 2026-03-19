@@ -80,7 +80,7 @@ contract AddLiquidity is Script {
             key,
             tickLower,
             tickUpper,
-            uint256(173269286841088),
+            uint256(44721359549996),  // ~1 mWETH + 2000 mUSDC worth
             amount0Max,
             amount1Max,
             deployer,

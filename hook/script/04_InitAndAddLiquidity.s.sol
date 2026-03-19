@@ -22,7 +22,7 @@ contract InitAndAddLiquidity is Script {
     // currency0=mWETH (lower address), currency1=mUSDC
     address constant mWETH  = 0xcf841F89753158557091E0C28781f09E27Aa3B55;
     address constant mUSDC  = 0xEc8856122E88C4E10b2Ba448e63933D5A41028CC;
-    address constant HOOK    = 0xB7056bFF4178b8CfaDEBF4Ab9BAa9901524Ce0c8;
+    address constant HOOK    = 0xdcdcbde6ec7209ad97db4cbe5e40c16127d820c8;
     address constant RESERVE = 0x6662DA476699739d3dd9e2B3D11B82017A013A02;
 
     // 1 mWETH = 2000 mUSDC

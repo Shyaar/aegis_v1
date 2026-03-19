@@ -114,8 +114,12 @@ contract DeploySepolia is Script {
         });
 
         // 1 mWETH = 2000 mUSDC starting price
-        // pre-calculated sqrtPriceX96 for this ratio
-        uint160 startingPrice = 1771595571142957166518320255467520;
+        // sqrtPriceX96 depends on which token is currency0:
+        // If currency0=mUSDC(6dec), currency1=mWETH(18dec): price_raw = 1e18/2000e6 = 5e8 → sqrtP = sqrt(5e8)*2^96
+        // If currency0=mWETH(18dec), currency1=mUSDC(6dec): price_raw = 2000e6/1e18 = 2e-9 → sqrtP = sqrt(2e-9)*2^96
+        uint160 startingPrice = Currency.unwrap(currency0) == address(mockUSDC)
+            ? 1771595571142957166518320255467520   // currency0=mUSDC: tick ~+200311
+            : 3543191142285914333036544;           // currency0=mWETH: tick ~-200311
 
         // this triggers beforeInitialize on AegisHook
         IPoolManager(POOL_MANAGER).initialize(poolKey, startingPrice);
