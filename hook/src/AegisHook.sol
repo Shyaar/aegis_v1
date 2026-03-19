@@ -163,9 +163,14 @@ contract AegisHook is BaseHook {
             ? uint256(params.amountSpecified)
             : uint256(-params.amountSpecified);
 
-        // 3. Handle Insurance Tier (passed via hookData as (uint8 tier) or (uint8 tier, address))
+        // 3. Handle Insurance Tier (passed via hookData as (uint8 tier, address sender))
         IAegisPolicy.CoverageTier tier = IAegisPolicy.CoverageTier.None;
-        if (hookData.length >= 32) {
+        address user = swapper; // fallback to router if no sender in hookData
+        if (hookData.length >= 64) {
+            (uint8 tierRaw, address sender) = abi.decode(hookData, (uint8, address));
+            tier = IAegisPolicy.CoverageTier(tierRaw);
+            if (sender != address(0)) user = sender;
+        } else if (hookData.length >= 32) {
             (uint8 tierRaw,) = abi.decode(hookData, (uint8, address));
             tier = IAegisPolicy.CoverageTier(tierRaw);
         } else if (hookData.length > 0) {
@@ -193,7 +198,7 @@ contract AegisHook is BaseHook {
             );
 
             // save quote with calculated premium
-            activeQuotes[swapper] = SwapQuote({
+            activeQuotes[user] = SwapQuote({
                 sqrtPriceX96: sqrtPriceX96,
                 tier: tier,
                 premium: premium,
@@ -208,8 +213,8 @@ contract AegisHook is BaseHook {
             poolManager.take(inputCurrency, address(reserve), premium);
             reserve.depositPremium(Currency.unwrap(inputCurrency), premium);
 
-            emit InsuranceQuoted(swapper, sqrtPriceX96, tier);
-            emit SwapCovered(swapper, premium, amountSpecified);
+            emit InsuranceQuoted(user, sqrtPriceX96, tier);
+            emit SwapCovered(user, premium, amountSpecified);
 
             BeforeSwapDelta delta = params.amountSpecified < 0
                 ? toBeforeSwapDelta(int128(uint128(premium)), 0)   // exact-in: specified side
@@ -235,9 +240,16 @@ contract AegisHook is BaseHook {
         PoolKey calldata key,
         SwapParams calldata params,
         BalanceDelta delta,
-        bytes calldata
+        bytes calldata hookData
     ) internal override returns (bytes4, int128) {
-        SwapQuote memory quote = activeQuotes[swapper];
+        // Resolve the real user identity (same logic as _beforeSwap)
+        address user = swapper;
+        if (hookData.length >= 64) {
+            (, address sender) = abi.decode(hookData, (uint8, address));
+            if (sender != address(0)) user = sender;
+        }
+
+        SwapQuote memory quote = activeQuotes[user];
 
         // If no quote exists, swapper had None tier - skip everything
         if (quote.sqrtPriceX96 == 0) {
@@ -350,16 +362,16 @@ contract AegisHook is BaseHook {
 
         }
 
-        delete activeQuotes[swapper];
+        delete activeQuotes[user];
 
         if (compensation > 0) {
             reserve.recordClaim(
-                swapper,
+                user,
                 Currency.unwrap(compCurrency),
                 compensation
             );
-            emit CompensationTriggered(swapper, compensation);
-            emit ClaimPaid(swapper, compensation);
+            emit CompensationTriggered(user, compensation);
+            emit ClaimPaid(user, compensation);
         }
 
         // Update Moving Average for Dynamic Fees after swap

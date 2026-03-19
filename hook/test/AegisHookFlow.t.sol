@@ -262,16 +262,16 @@ contract AegisHookFlowTest is Test, Deployers {
         uint256 claimId = reserve.nextClaimId() - 1;
         (address swapper, address token, uint256 amount, bool settled, ) = reserve.claims(claimId);
         
-        assertEq(swapper, address(swapRouter), "Swapper should be the router in this test context");
+        assertEq(swapper, address(this), "Swapper should be the test contract (passed via hookData)");
         assertEq(settled, false);
         assertGt(amount, 0, "Compensation amount should be > 0");
 
-        // 3. Settle Claim (Router is the one who receives it)
-        uint256 balanceBefore = MockERC20(token).balanceOf(address(swapRouter));
+        // 3. Settle Claim — recipient is address(this) now
+        uint256 balanceBefore = MockERC20(token).balanceOf(address(this));
         reserve.settleClaim(claimId);
-        uint256 balanceAfter = MockERC20(token).balanceOf(address(swapRouter));
+        uint256 balanceAfter = MockERC20(token).balanceOf(address(this));
 
-        assertEq(balanceAfter - balanceBefore, amount, "Router should receive compensation");
+        assertEq(balanceAfter - balanceBefore, amount, "Test contract should receive compensation");
         (, , , settled, ) = reserve.claims(claimId);
         assertEq(settled, true);
     }

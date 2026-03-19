@@ -272,7 +272,7 @@ export function useProtectedSwap() {
           sqrtPriceLimitX96: zeroForOne ? MIN_SQRT_PRICE : MAX_SQRT_PRICE,
         },
         { takeClaims: false, settleUsingBurn: false },
-        encodeAbiParameters(parseAbiParameters('uint8'), [tier]),
+        encodeAbiParameters(parseAbiParameters('uint8, address'), [tier, walletClient?.account?.address ?? '0x0000000000000000000000000000000000000000']),
       ],
       chain: unichainSepolia,
       nonce,
