@@ -1,0 +1,27 @@
+# Aegis Protocol — Deployed Addresses
+# Network: Unichain Sepolia (chainId: 1301)
+# Deployed: 2026-03-19
+
+# Tokens
+mUSDC:          0xF39d83F111544beCba071814ba3Bb87CE1F24491  (decimals=6,  currency1)
+mWETH:          0x330FAc6bd4e4c2279CdBe29E9642d0CA53342f86  (decimals=18, currency0)
+
+# Core Contracts
+AegisPolicy:    0x171B2558d4e48b1B25D8c80Cd1A23168b806F845
+AegisOracle:    0x48EaD6B838c4ed1B6be0930Ae8B834CafF21e9F8
+AegisReserve:   0xc8DEA4e56ac2A5cF7A74E3C512F12fbdbdc406B3
+AegisHook:      0x9aADcd5a16093e382bE24634F34df64c721C60c8
+
+# Uniswap v4 Infrastructure (Unichain Sepolia)
+PoolManager:    0x00B036B58a818B1BC34d502D3fE730Db729e62AC
+PoolSwapTest:   0x9140a78c1A137c7fF1c151EC8231272aF78a99A4
+
+# Reactive Network (Lasna, chainId: 5318007)
+AegisReactive:  0xfF376428bfEb3231F10603240044b560E99d6F70
+
+# Pool Key
+currency0:      0x330FAc6bd4e4c2279CdBe29E9642d0CA53342f86  (mWETH)
+currency1:      0xF39d83F111544beCba071814ba3Bb87CE1F24491  (mUSDC)
+fee:            8388608 (DYNAMIC_FEE_FLAG)
+tickSpacing:    60
+hooks:          0x9aADcd5a16093e382bE24634F34df64c721C60c8
