@@ -14,9 +14,9 @@ RPC="$SEPOLIA_RPC_URL"
 PK="$PRIVATE_KEY"
 TRADER=$(cast wallet address --private-key $PK)
 
-mUSDC="0x16a1234f95e6cdefaae4d7ecd352afe4b9946a35"
-mWETH="0x1de340ae93ac4896ac5fed63b73306325395f195"
-RESERVE="0x50461bc04ef3b29dd1b38d1ed393abe711cde922"
+mUSDC="0x87f578ab6796283ffb48f27902439451be9e5e35"
+mWETH="0x0c8a8efd21533d1181451effafceb6680cf19ea8"
+RESERVE="0xcf539e151394c44e8c7fefa4a31a9315411450c5"
 
 sep() { echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"; }
 

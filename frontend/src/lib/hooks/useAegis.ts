@@ -255,12 +255,11 @@ export function useProtectedSwap() {
   const client = usePublicClient()
   const { data: walletClient } = useWalletClient()
 
-  // currency0=mUSDC, currency1=mWETH
-  // zeroForOne=true  → selling mUSDC (currency0) for mWETH (currency1)
-  // zeroForOne=false → selling mWETH (currency1) for mUSDC (currency0)
+  // currency0=mWETH, currency1=mUSDC
+  // zeroForOne=true  → selling mWETH (currency0) for mUSDC (currency1)
+  // zeroForOne=false → selling mUSDC (currency1) for mWETH (currency0)
   const swap = async (amountSpecified: bigint, zeroForOne: boolean, tier: number) => {
     const nonce = await freshNonce(client, walletClient)
-    const sender = walletClient?.account?.address ?? '0x0000000000000000000000000000000000000000'
     return writeContractAsync({
       abi: POOL_SWAP_TEST_ABI,
       address: AEGIS_CONTRACTS.POOL_SWAP_TEST,
@@ -273,7 +272,7 @@ export function useProtectedSwap() {
           sqrtPriceLimitX96: zeroForOne ? MIN_SQRT_PRICE : MAX_SQRT_PRICE,
         },
         { takeClaims: false, settleUsingBurn: false },
-        encodeAbiParameters(parseAbiParameters('uint8, address'), [tier, sender]),
+        encodeAbiParameters(parseAbiParameters('uint8'), [tier]),
       ],
       chain: unichainSepolia,
       nonce,

@@ -28,14 +28,12 @@ import {
     CurrencyLibrary
 } from "@uniswap/v4-core/src/types/Currency.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 contract AegisHook is BaseHook {
     using PoolIdLibrary for PoolKey;
     using StateLibrary for IPoolManager;
     using CurrencyLibrary for Currency;
     using LPFeeLibrary for uint24;
-    using SafeERC20 for IERC20;
 
     // --- State ---
     IAegisPolicy public policy;
@@ -165,13 +163,11 @@ contract AegisHook is BaseHook {
             ? uint256(params.amountSpecified)
             : uint256(-params.amountSpecified);
 
-        // 3. Handle Insurance Tier (passed via hookData as (uint8 tier, address sender))
+        // 3. Handle Insurance Tier (passed via hookData as (uint8 tier) or (uint8 tier, address))
         IAegisPolicy.CoverageTier tier = IAegisPolicy.CoverageTier.None;
-        address premiumPayer = swapper;
         if (hookData.length >= 32) {
-            (uint8 tierRaw, address sender) = abi.decode(hookData, (uint8, address));
+            (uint8 tierRaw,) = abi.decode(hookData, (uint8, address));
             tier = IAegisPolicy.CoverageTier(tierRaw);
-            if (sender != address(0)) premiumPayer = sender;
         } else if (hookData.length > 0) {
             tier = abi.decode(hookData, (IAegisPolicy.CoverageTier));
         }
@@ -205,18 +201,23 @@ contract AegisHook is BaseHook {
                 fee: dynamicFee
             });
 
-            // Collect premium directly from actual user via transferFrom (side-channel, outside PoolManager accounting)
+            // Collect premium via PoolManager.take() — pulls tokens from PoolManager to reserve.
+            // BeforeSwapDelta: for exact-input (amountSpecified < 0), charge premium on specified side.
+            // For exact-output (amountSpecified > 0), charge premium on unspecified (input) side.
             Currency inputCurrency = params.zeroForOne ? key.currency0 : key.currency1;
-            address inputToken = Currency.unwrap(inputCurrency);
-            IERC20(inputToken).safeTransferFrom(premiumPayer, address(reserve), premium);
-            reserve.depositPremium(inputToken, premium);
+            poolManager.take(inputCurrency, address(reserve), premium);
+            reserve.depositPremium(Currency.unwrap(inputCurrency), premium);
 
             emit InsuranceQuoted(swapper, sqrtPriceX96, tier);
             emit SwapCovered(swapper, premium, amountSpecified);
 
+            BeforeSwapDelta delta = params.amountSpecified < 0
+                ? toBeforeSwapDelta(int128(uint128(premium)), 0)   // exact-in: specified side
+                : toBeforeSwapDelta(0, int128(uint128(premium)));  // exact-out: unspecified side
+
             return (
                 BaseHook.beforeSwap.selector,
-                BeforeSwapDeltaLibrary.ZERO_DELTA,
+                delta,
                 dynamicFee | LPFeeLibrary.OVERRIDE_FEE_FLAG
             );
         }

@@ -90,7 +90,7 @@ contract AddLiquidity is Script {
 
         IPositionManager(POSITION_MANAGER).modifyLiquidities(
             abi.encode(actions, params),
-            block.timestamp + 60
+            block.timestamp + 3600
         );
 
         console.log("Liquidity added successfully");
