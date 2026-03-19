@@ -102,10 +102,10 @@ export default function SwapCard({ activeTab = "Swap" }: { activeTab?: string })
     if (!isConnected) return
     const toastId = toast.loading("Preparing swap...")
     try {
-      // currency0=mUSDC, currency1=mWETH
-      // zeroForOne=true  → selling mUSDC (currency0) for mWETH (currency1)
-      // zeroForOne=false → selling mWETH (currency1) for mUSDC (currency0)
-      const zeroForOne = sellSymbol === "mUSDC"
+      // currency0=mWETH, currency1=mUSDC
+      // zeroForOne=true  → selling mWETH (currency0) for mUSDC (currency1)
+      // zeroForOne=false → selling mUSDC (currency1) for mWETH (currency0)
+      const zeroForOne = sellSymbol === "mWETH"
       const sellToken = sellSymbol === "mWETH" ? AEGIS_CONTRACTS.mWETH : AEGIS_CONTRACTS.mUSDC
       const decimals = sellSymbol === "mWETH" ? 18 : 6
       const amount = parseUnits(sellAmount || "0", decimals)

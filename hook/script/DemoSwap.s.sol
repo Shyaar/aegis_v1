@@ -15,9 +15,9 @@ import {MockERC20} from "../src/mocks/MockERC20.sol";
 
 contract DemoSwap is Script {
     address constant SWAP_ROUTER = 0x9140a78c1A137c7fF1c151EC8231272aF78a99A4;
-    address constant mUSDC = 0x665D2ce2a1c0De6D1a633f7E64C2383CB624662A;
-    address constant mWETH = 0xad86B4C5048Fdc15550543C45cdD70f70D0A63EF;
-    address constant HOOK  = 0x2042d29d9FC03a225c6a1d56b5a138C9e61960C8;
+    address constant mUSDC = 0xE55C5Ace3b0645AeAD6d685D29DFEC35245619Bc;
+    address constant mWETH = 0x83190Ed6aBa775d7910EF2f5F94845Ca79ccC29E;
+    address constant HOOK  = 0x1b1e38436421512DE424B666F3aaC28c8c99e0C8;
 
     function run() external {
         uint256 swapAmount = vm.envUint("SWAP_AMOUNT");
@@ -25,8 +25,8 @@ contract DemoSwap is Script {
         address trader = vm.addr(pk);
 
         PoolKey memory key = PoolKey({
-            currency0: Currency.wrap(mUSDC),
-            currency1: Currency.wrap(mWETH),
+            currency0: Currency.wrap(mWETH),  // mWETH < mUSDC
+            currency1: Currency.wrap(mUSDC),
             fee: LPFeeLibrary.DYNAMIC_FEE_FLAG,
             tickSpacing: 60,
             hooks: IHooks(HOOK)
@@ -34,17 +34,17 @@ contract DemoSwap is Script {
 
         vm.startBroadcast(pk);
 
-        // Mint mWETH to trader if needed and approve router
+        // Mint mWETH to trader and approve router
         MockERC20(mWETH).mint(trader, swapAmount);
         IERC20(mWETH).approve(SWAP_ROUTER, swapAmount);
 
-        // Swap mWETH -> mUSDC (currency1 -> currency0, zeroForOne=false)
+        // Swap mWETH -> mUSDC (currency0 -> currency1, zeroForOne=true)
         PoolSwapTest(SWAP_ROUTER).swap(
             key,
             SwapParams({
-                zeroForOne: false,
+                zeroForOne: true,
                 amountSpecified: -int256(swapAmount),
-                sqrtPriceLimitX96: TickMath.MAX_SQRT_PRICE - 1
+                sqrtPriceLimitX96: TickMath.MIN_SQRT_PRICE + 1
             }),
             PoolSwapTest.TestSettings({takeClaims: false, settleUsingBurn: false}),
             abi.encode(IAegisPolicy.CoverageTier.Premium)

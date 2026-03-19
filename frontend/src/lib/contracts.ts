@@ -10,23 +10,23 @@ export const unichainSepolia = defineChain({
 })
 
 export const AEGIS_CONTRACTS = {
-  POLICY:         '0xAf401a43FAe5C352bbEc0A0aa25C3b49044Bce46' as `0x${string}`,
-  RESERVE:        '0x404362df39d9352D439eAA00cFaD2074498883d0' as `0x${string}`,
-  HOOK:           '0x2042d29d9FC03a225c6a1d56b5a138C9e61960C8' as `0x${string}`,
-  ORACLE:         '0x05A3277080884ad6a15Ca5BB4b842403c8Dc6396' as `0x${string}`,
-  mUSDC:          '0x665D2ce2a1c0De6D1a633f7E64C2383CB624662A' as `0x${string}`,
-  mWETH:          '0xad86B4C5048Fdc15550543C45cdD70f70D0A63EF' as `0x${string}`,
-  POOL_SWAP_TEST: '0x9140a78c1a137c7ff1c151ec8231272af78a99a4' as `0x${string}`,
+  POLICY:         '0xC42c18EE275a172569D28809745Aa97F1A022b7F' as `0x${string}`,
+  RESERVE:        '0x7Dd287eDeC07099F5EF1F1d2883150617DF74A2E' as `0x${string}`,
+  HOOK:           '0x1b1e38436421512DE424B666F3aaC28c8c99e0C8' as `0x${string}`,
+  ORACLE:         '0x0649F336C2350A6BDfEc655B06DD9BDC4b4b7b2d' as `0x${string}`,
+  mUSDC:          '0xE55C5Ace3b0645AeAD6d685D29DFEC35245619Bc' as `0x${string}`,
+  mWETH:          '0x83190Ed6aBa775d7910EF2f5F94845Ca79ccC29E' as `0x${string}`,
+  POOL_SWAP_TEST: '0x9140a78c1A137c7fF1c151EC8231272aF78a99A4' as `0x${string}`,
 } as const
 
 // PoolKey for the Aegis pool (fixed at deployment)
-// NOTE: mUSDC < mWETH by address, so currency0=mUSDC, currency1=mWETH
+// NOTE: mWETH < mUSDC by address, so currency0=mWETH, currency1=mUSDC
 export const AEGIS_POOL_KEY = {
-  currency0: '0x665D2ce2a1c0De6D1a633f7E64C2383CB624662A' as `0x${string}`, // mUSDC (decimals=6)
-  currency1: '0xad86B4C5048Fdc15550543C45cdD70f70D0A63EF' as `0x${string}`, // mWETH (decimals=18)
+  currency0: '0x83190Ed6aBa775d7910EF2f5F94845Ca79ccC29E' as `0x${string}`, // mWETH (decimals=18)
+  currency1: '0xE55C5Ace3b0645AeAD6d685D29DFEC35245619Bc' as `0x${string}`, // mUSDC (decimals=6)
   fee: 8388608, // DYNAMIC_FEE_FLAG
   tickSpacing: 60,
-  hooks: '0x2042d29d9FC03a225c6a1d56b5a138C9e61960C8' as `0x${string}`,
+  hooks: '0x1b1e38436421512DE424B666F3aaC28c8c99e0C8' as `0x${string}`,
 } as const
 
 export const AEGIS_POLICY_ABI = [

@@ -97,6 +97,12 @@ contract DeploySepolia is Script {
         console.log("AegisHook deployed at:", address(hook));
 
         // -------------------------------------------------------
+        // STEP 4b — Wire hook into reserve
+        // -------------------------------------------------------
+        reserve.setHook(address(hook));
+        console.log("Reserve hook set to:", address(hook));
+
+        // -------------------------------------------------------
         // STEP 5 — Construct PoolKey and initialize pool
         // -------------------------------------------------------
         PoolKey memory poolKey = PoolKey({
