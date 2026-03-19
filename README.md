@@ -317,6 +317,22 @@ The Reactive Network enables trustless cross-chain callbacks. When a `ClaimPaid`
 
 ---
 
+## Partner Integrations
+
+### Uniswap v4
+Aegis is built entirely on the Uniswap v4 Hook architecture. The `AegisHook` contract implements `beforeSwap` and `afterSwap` callbacks, giving it atomic access to the swap lifecycle — price before, execution after — without any external calls or off-chain coordination. The dynamic fee override (`DYNAMIC_FEE_FLAG` + `OVERRIDE_FEE_FLAG`) lets the hook adjust LP fees in real time based on network congestion, making Aegis pools more capital-efficient than standard v4 pools. LPs in an Aegis pool earn both swap fees and insurance premiums.
+
+### Reactive Network
+The Reactive Network enables trustless cross-chain automation without keepers or cron jobs. `AegisReactive` is deployed on Reactive Lasna and subscribes to `ClaimPaid` events emitted by `AegisHook` on Unichain Sepolia. When a claim fires — signalling a high-slippage event — the Reactive contract automatically calls back into `AegisPolicy` to raise `extraBps`, increasing premiums for subsequent swaps. Once conditions normalize, it resets premiums. This feedback loop keeps the reserve solvent during volatile periods with zero manual intervention and no trusted intermediary.
+
+### Unichain Sepolia
+Aegis is deployed on Unichain Sepolia, Uniswap's own L2 testnet. Unichain's fast block times and low fees make it ideal for a hook-based protocol where every swap triggers multiple contract calls (hook + reserve + oracle).
+
+### Privy
+The frontend uses Privy for wallet management. Privy's embedded wallets allow users without a browser extension to connect instantly via email or social login, lowering the barrier to entry for the demo. The `walletClient` from Privy's wagmi integration is used for both transaction signing and `wallet_watchAsset` calls to auto-add test tokens.
+
+---
+
 ## Tech Stack
 
 | Layer | Technology |
